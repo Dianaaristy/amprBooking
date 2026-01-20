@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -13,15 +14,29 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+    ->withMiddleware(function (Middleware $middleware) {
 
+        // 1. DAFTARKAN ALIAS (Untuk Route 'role:security')
+        $middleware->alias([
+            'role' => CheckRole::class,
+            'resident' => \App\Http\Middleware\CheckResidentSession::class,
+        ]);
+
+        // 2. TAMBAHKAN MIDDLEWARE KE GROUP 'WEB'
+        // (Digabung jadi satu array biar rapi dan tidak double load)
         $middleware->web(append: [
-            HandleAppearance::class,
-            HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            HandleAppearance::class,                 // Mengurus Dark Mode/Theme
+            HandleInertiaRequests::class,            // Mengurus Data Inertia (User, Flash msg)
+            AddLinkHeadersForPreloadedAssets::class, // Optimasi Aset
+        ]);
+
+        // 3. PENGECUALIAN ENKRIPSI COOKIE
+        // Biar settingan tema/sidebar tidak ter-reset saat browser ditutup
+        $middleware->encryptCookies(except: [
+            'appearance',
+            'sidebar_state',
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

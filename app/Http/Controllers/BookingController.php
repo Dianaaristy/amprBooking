@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\CheckTicketRequest;
 use App\Http\Requests\StoreBookingRequest;
+use App\Http\Resources\TicketResource;
 use App\Models\Booking;
 use App\Models\Unit;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -11,7 +11,6 @@ use Carbon\Carbon;
 use chillerlan\QRCode\QRCode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -26,8 +25,6 @@ class BookingController extends Controller
         $today = Carbon::now('Asia/Jakarta');
 
         // --- 1. FITUR DYNAMIC DATE (1 BULAN) ---
-        // Menghitung range dari hari ini sampai tanggal yang sama bulan depan.
-        // Contoh: 18 Des -> 18 Jan. Carbon otomatis tahu jika ada tgl 31 atau Feb 28.
         $endDate = $today->copy()->addMonth();
         $daysDifference = $today->diffInDays($endDate);
 
@@ -43,7 +40,7 @@ class BookingController extends Controller
             ];
         });
 
-        // 2. Ambil Data Slot Terisi (Format Ringan untuk Frontend)
+        // 2. Ambil Data Slot Terisi
         $rawBookings = Booking::active()
             ->whereDate('start_time', '>=', $today->format('Y-m-d'))
             ->whereDate('start_time', '<=', $endDate->format('Y-m-d'))
@@ -60,14 +57,16 @@ class BookingController extends Controller
         $bookingsPerDate = $bookedSlots->groupBy('date')->map->count();
         $fullyBookedDates = $bookingsPerDate->filter(fn ($count) => $count >= 16)->keys()->toArray();
 
-        // 4. Data Unit untuk Dropdown
-        $units = Unit::orderBy('unit_number', 'asc')->pluck('unit_number');
+        // [REVISI] Ambil Nomor Unit dari Session untuk ditampilkan di Header Frontend
+        // Tidak perlu $units dropdown lagi
+        $userUnit = session('resident_unit_number', 'Unknown Unit');
 
         return Inertia::render('booking/Home', [
             'dates' => $dates,
             'bookedSlots' => $bookedSlots,
-            'units' => $units,
+            // 'units' => $units, <-- SUDAH TIDAK DIPAKAI
             'fullyBookedDates' => $fullyBookedDates,
+            'userUnit' => $userUnit, // <-- KIRIM KE FRONTEND
         ]);
     }
 
@@ -81,8 +80,6 @@ class BookingController extends Controller
         $endTime = $startTime->copy()->addHour();
 
         // --- VALIDASI 3: CONCURRENCY (ATOMIC LOCK) ---
-        // Kunci slot ini selama 5 detik berdasarkan waktu.
-        // Jika ada orang lain klik di detik yang sama, dia akan ditolak.
         $lockKey = "booking_lock_{$startTime->timestamp}";
         $lock = Cache::lock($lockKey, 5); // 5 detik
 
@@ -93,23 +90,24 @@ class BookingController extends Controller
         try {
             return DB::transaction(function () use ($request, $startTime, $endTime) {
 
-                // 1. Cek Unit & PIN (Auth Manual)
-                $unit = Unit::where('unit_number', $request->unit_number)->first();
-                if (! $unit || ! Hash::check($request->access_code, $unit->access_code)) {
-                    throw ValidationException::withMessages(['access_code' => 'PIN Akses salah atau Unit tidak ditemukan.']);
+                // [REVISI] 1. AMBIL UNIT DARI SESSION (BUKAN INPUT MANUAL)
+                $unitId = session('resident_unit_id');
+                $unit = Unit::find($unitId);
+
+                // Validasi Session (Jaga-jaga kalau expired pas lagi klik)
+                if (! $unit) {
+                    throw ValidationException::withMessages(['player_names' => 'Sesi Anda habis. Silakan login ulang.']);
                 }
 
                 // --- VALIDASI 1: SANKSI (BANNED) ---
-                // Cek apakah kolom banned terisi DAN tanggalnya masih di masa depan
                 if ($unit->is_banned_until && now() < $unit->is_banned_until) {
                     $dateEnd = Carbon::parse($unit->is_banned_until)->format('d M Y');
                     throw ValidationException::withMessages([
-                        'unit_number' => "Unit ini sedang disanksi (Banned) hingga {$dateEnd}. Tidak dapat melakukan booking.",
+                        'player_names' => "Unit Anda sedang disanksi (Banned) hingga {$dateEnd}. Tidak dapat melakukan booking.",
                     ]);
                 }
 
                 // --- VALIDASI 2: KUOTA MINGGUAN ---
-                // Hitung jumlah booking unit ini di minggu berjalan (Senin - Minggu)
                 $startOfWeek = now()->startOfWeek();
                 $endOfWeek = now()->endOfWeek();
 
@@ -118,10 +116,9 @@ class BookingController extends Controller
                     ->whereBetween('start_time', [$startOfWeek, $endOfWeek])
                     ->count();
 
-                // Batas Max 2 Slot per minggu
                 if ($weeklyUsage >= 2) {
                     throw ValidationException::withMessages([
-                        'unit_number' => 'Kuota mingguan habis. Maksimal 2 jam per minggu.',
+                        'player_names' => 'Kuota mingguan Anda habis. Maksimal 2 jam per minggu.',
                     ]);
                 }
 
@@ -136,7 +133,7 @@ class BookingController extends Controller
 
                 // 3. Simpan Booking
                 $booking = Booking::create([
-                    'unit_id' => $unit->id,
+                    'unit_id' => $unit->id, // [REVISI] Pakai ID Session
                     'start_time' => $startTime,
                     'end_time' => $endTime,
                     'player_names' => [$request->player_names],
@@ -157,13 +154,21 @@ class BookingController extends Controller
             });
 
         } finally {
-            $lock->release(); // Lepas kunci
+            if (isset($lock)) {
+                $lock->release();
+            }
         }
     }
 
     public function showTicket(Booking $booking)
     {
         $booking->load('unit');
+
+        // Pastikan tiket milik unit yang sedang login (Security Check)
+        if (session('resident_unit_id') && $booking->unit_id != session('resident_unit_id')) {
+            abort(403, 'Anda tidak berhak melihat tiket ini.');
+        }
+
         $qrCode = (new QRCode)->render($booking->booking_code);
 
         return Inertia::render('booking/Success', [
@@ -174,28 +179,28 @@ class BookingController extends Controller
 
     public function downloadPdf(Booking $booking)
     {
+        // Security check sama seperti showTicket
+        if (session('resident_unit_id') && $booking->unit_id != session('resident_unit_id')) {
+            abort(403);
+        }
+
         $booking->load('unit');
 
-        // --- KONFIGURASI QR CODE KHUSUS PDF (PNG) ---
-        // Kita gunakan PNG karena DomPDF lebih stabil merender PNG daripada SVG
         $options = new \chillerlan\QRCode\QROptions([
             'version' => 5,
             'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
             'eccLevel' => \chillerlan\QRCode\QRCode::ECC_L,
             'scale' => 5,
-            'imageBase64' => true, // Agar langsung keluar string "data:image/png;base64,..."
+            'imageBase64' => true,
         ]);
 
-        // Generate QR
         $qrCode = (new QRCode($options))->render($booking->booking_code);
 
-        // Render PDF
         $pdf = Pdf::loadView('pdf.ticket', [
             'booking' => $booking,
             'qrCode' => $qrCode,
         ]);
 
-        // Setup Kertas A5 (Ukuran Tiket)
         $pdf->setPaper('A5', 'portrait');
         $pdf->setWarnings(false);
 
@@ -204,35 +209,32 @@ class BookingController extends Controller
 
     public function myTickets()
     {
-        return Inertia::render('booking/MyTickets');
-    }
+        $unitId = session('resident_unit_id');
+        $userUnit = session('resident_unit_number');
 
-    /**
-     * ACTION: Proses Cek Tiket (Refactored)
-     */
-    public function checkTickets(CheckTicketRequest $request)
-    {
-        // 1. Ambil Unit (Pakai Scope dari Model Unit)
-        $unit = Unit::byNumber($request->unit_number)->first();
-
-        // 2. Validasi Kredensial (Unit Ada & PIN Cocok)
-        if (! $unit || ! Hash::check($request->access_code, $unit->access_code)) {
-            throw ValidationException::withMessages([
-                'access_code' => 'Kombinasi Unit dan PIN tidak cocok.',
-            ]);
-        }
-
-        // 3. Ambil Data (Pakai Scope dari Model Booking)
-        // Baca: "Booking -> Upcoming For Unit -> Get"
-        $bookings = Booking::upcomingForUnit($unit->id)
-            ->with('unit')
+        // 1. Tiket AKAN DATANG
+        $activeData = Booking::where('unit_id', $unitId)
+            ->where('start_time', '>=', now())
+            ->whereIn('status', ['booked'])
+            ->orderBy('start_time', 'asc')
             ->get();
 
-        // 4. Return ke Vue
-        return Inertia::render('booking/MyTickets', [
-            'bookings' => $bookings,
-            'searchedUnit' => $unit->unit_number,
-        ]);
+        // 2. Tiket RIWAYAT
+        $historyData = Booking::where('unit_id', $unitId)
+            ->where(function ($q) {
+                $q->where('start_time', '<', now())
+                    ->orWhereIn('status', ['checked_in', 'cancelled', 'no_show']);
+            })
+            ->orderBy('start_time', 'desc')
+            ->limit(20)
+            ->get();
 
+        // RETURN MENGGUNAKAN RESOURCE
+        // TicketResource::collection(...) otomatis mengolah data sesuai format di file Resource tadi
+        return Inertia::render('booking/MyTickets', [
+            'activeTickets' => TicketResource::collection($activeData),
+            'historyTickets' => TicketResource::collection($historyData),
+            'userUnit' => $userUnit,
+        ]);
     }
 }

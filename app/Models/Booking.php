@@ -12,12 +12,14 @@ class Booking extends Model
 {
     protected $fillable = [
         'booking_code', 'unit_id', 'start_time', 'end_time',
-        'status', 'player_names',
+        'status', 'player_names', 'checked_in_at',
+        'checked_in_by',
     ];
 
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'checked_in_at' => 'datetime', // Casting ini juga penting
         'player_names' => 'array',
     ];
 
@@ -47,5 +49,13 @@ class Booking extends Model
             ->active() // Menggunakan scopeActive yang sudah ada
             ->where('start_time', '>=', now()) // Hanya yang belum lewat
             ->orderBy('start_time', 'asc');
+    }
+
+    /**
+     * Scope: Cari booking berdasarkan kode (Case Insensitive)
+     */
+    public function scopeByCode($query, $code)
+    {
+        return $query->where('booking_code', $code);
     }
 }

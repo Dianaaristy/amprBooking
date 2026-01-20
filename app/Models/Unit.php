@@ -16,8 +16,8 @@ class Unit extends Model
      */
     protected $fillable = [
         'unit_number',
-        'access_code',
         'owner_name',
+        'access_code',
         'is_banned_until',
         'quota_usage',
         'last_quota_reset',

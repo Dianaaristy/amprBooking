@@ -1,6 +1,6 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 // --- 1. LOGIC (TETAP SAMA 100%) ---
 const props = defineProps({
@@ -8,6 +8,7 @@ const props = defineProps({
     bookedSlots: { type: Array, default: () => [] },
     units: { type: Array, default: () => [] },
     fullyBookedDates: { type: Array, default: () => [] },
+    userUnit: { type: String, required: true },
 });
 
 const todayStr = new Date().toISOString().split('T')[0];
@@ -16,23 +17,12 @@ const selectedDate = ref(
 );
 const showModal = ref(false);
 const selectedSlot = ref(null);
-const unitSearch = ref('');
-const showUnitDropdown = ref(false);
 
 const form = useForm({
-    unit_number: '',
-    access_code: '',
     player_names: '',
     date: '',
     hour: '',
     agree_terms: false,
-});
-
-const filteredUnits = computed(() => {
-    if (!unitSearch.value) return props.units;
-    return props.units.filter((u) =>
-        u.toLowerCase().includes(unitSearch.value.toLowerCase()),
-    );
 });
 
 const morningSlots = [6, 7, 8, 9, 10, 11];
@@ -59,26 +49,24 @@ const openBooking = (hour) => {
     const start = String(hour).padStart(2, '0') + ':00';
     const end = String(hour + 1).padStart(2, '0') + ':00';
     selectedSlot.value = { hour, label: `${start} - ${end}` };
+    // Reset Form (Lebih Simpel)
     form.date = selectedDate.value;
     form.hour = hour;
-    form.unit_number = '';
-    form.access_code = '';
+    form.player_names = ''; // Reset nama
     form.agree_terms = false;
-    unitSearch.value = '';
     form.clearErrors();
+
     showModal.value = true;
 };
 
-const selectUnit = (unit) => {
-    form.unit_number = unit;
-    unitSearch.value = unit;
-    showUnitDropdown.value = false;
-};
-
 const submitBooking = () => {
-    form.post('/booking', {
+    form.post(route('booking.store'), {
+        preserveScroll: true, // Supaya scroll ga loncat
         onSuccess: () => (showModal.value = false),
-        onFinish: () => form.reset('access_code'),
+        onError: (errors) => {
+            // Opsional: Debugging di console
+            console.log('Error Booking:', errors);
+        },
     });
 };
 
@@ -95,27 +83,27 @@ const formatDateDisplay = (dateString) => {
 <template>
     <Head title="Booking Lapangan" />
 
-    <!-- LAYOUT UTAMA: Pastel Gradient Background -->
+    <!-- LAYOUT UTAMA: Background Beige/Cement (#E7E5D7) -->
     <div
-        class="flex h-[100dvh] justify-center overflow-hidden bg-gradient-to-br from-[#F4E7FB] via-[#FFF0F0] to-[#E8EAF6] font-sans text-[#5A4D61] antialiased"
+        class="flex h-[100dvh] justify-center overflow-hidden bg-[#E7E5D7] font-sans text-slate-800 antialiased"
     >
         <!-- MOBILE CONTAINER -->
         <div
-            class="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden border-x border-white/40 bg-white/60 shadow-2xl backdrop-blur-md"
+            class="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden border-x border-[#869A69]/20 bg-white shadow-2xl"
         >
-            <!-- BAGIAN 1: HEADER (Sesuai Screenshot Baru) -->
-            <div class="z-20 flex-none px-6 pt-8 pb-2">
-                <!-- Top Bar: Lokasi & Notif -->
-                <div class="mb-5 flex items-center justify-between">
+            <!-- BAGIAN 1: HEADER (Sticky Top) -->
+            <div class="flex-none bg-white px-6 pt-10 pb-4">
+                <!-- Top Bar -->
+                <div class="mb-6 flex items-center justify-between">
                     <div>
                         <p
-                            class="mb-1 text-[10px] font-bold tracking-widest text-[#9D8CA6] uppercase"
+                            class="mb-1 text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
                         >
                             LOKASI
                         </p>
-                        <div class="flex items-center gap-1.5 text-[#2D2D2D]">
+                        <div class="flex items-center gap-1.5 text-slate-800">
                             <svg
-                                class="h-4 w-4 text-[#FF844B]"
+                                class="h-4 w-4 text-[#65AAC2]"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                             >
@@ -125,101 +113,125 @@ const formatDateDisplay = (dateString) => {
                                     clip-rule="evenodd"
                                 ></path>
                             </svg>
-                            <h1 class="text-base font-bold text-[#5A4D61]">
+                            <h1 class="text-lg font-bold tracking-tight">
                                 Mediterania Palace
                             </h1>
                         </div>
                     </div>
-                    <!-- Profile / Notif Avatar -->
+                    <!-- Notif Icon -->
                     <div
-                        class="h-10 w-10 rounded-full bg-gradient-to-tr from-[#C8A8E9] to-[#E3AADD] p-[2px]"
+                        class="relative cursor-pointer rounded-full border border-[#E7E5D7] bg-[#F8F9FA] p-2.5 transition hover:bg-[#E7E5D7]/50"
                     >
-                        <div
-                            class="flex h-full w-full items-center justify-center rounded-full bg-white"
+                        <svg
+                            class="h-5 w-5 text-[#869A69]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                         >
-                            <svg
-                                class="h-5 w-5 text-[#C8A8E9]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                                ></path>
-                            </svg>
-                        </div>
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                            ></path>
+                        </svg>
+                        <div
+                            class="absolute top-2.5 right-3 h-1.5 w-1.5 rounded-full bg-[#65AAC2]"
+                        ></div>
                     </div>
                 </div>
 
-                <!-- Hero Card (Visa Style but for Info) -->
+                <!-- Hero Card: Court Blue (#65AAC2) -->
                 <div
-                    class="group relative overflow-hidden rounded-[1.8rem] p-5 text-white shadow-lg shadow-[#E3AADD]/30"
+                    class="relative overflow-hidden rounded-[1.5rem] bg-[#65AAC2] p-6 text-white shadow-xl shadow-[#65AAC2]/30"
                 >
-                    <!-- Gradient Background -->
-                    <div
-                        class="absolute inset-0 bg-gradient-to-r from-[#F6BCBA] to-[#E3AADD]"
-                    ></div>
-                    <!-- Abstract Shapes -->
-                    <div
-                        class="absolute -top-10 -right-6 h-32 w-32 rounded-full bg-white/20 blur-xl"
-                    ></div>
-                    <div
-                        class="absolute -bottom-10 -left-6 h-32 w-32 rounded-full bg-[#C8A8E9]/40 blur-xl"
-                    ></div>
-
-                    <div
-                        class="relative z-10 flex items-center justify-between"
-                    >
-                        <!-- Kiri: Judul -->
-                        <div>
-                            <h2
-                                class="mb-1 flex items-center gap-2 text-xl font-bold tracking-wide"
+                    <div class="relative z-10">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h2
+                                    class="mb-1 font-serif text-2xl leading-tight font-bold tracking-wide"
+                                >
+                                    Tennis Court 🎾
+                                </h2>
+                                <p
+                                    class="text-xs font-medium tracking-wider text-[#E7E5D7] uppercase"
+                                >
+                                    Booking Anytime
+                                </p>
+                            </div>
+                            <!-- Badge -->
+                            <div
+                                class="rounded-lg border border-white/10 bg-white/20 px-3 py-1.5 text-center backdrop-blur-md"
                             >
-                                AMPR Tennis
-                                <span class="text-2xl">🎾</span>
-                            </h2>
-                            <p
-                                class="text-xs font-bold font-medium text-[#5A4D61]"
-                            >
-                                Booking Anytime
-                            </p>
+                                <span
+                                    class="block text-[9px] tracking-widest text-[#E7E5D7] uppercase"
+                                    >KUOTA</span
+                                >
+                                <span class="text-sm font-bold">2 Jam</span>
+                            </div>
                         </div>
 
-                        <!-- Kanan: Kuota Box (Glass Effect) -->
-                        <div
-                            class="min-w-[70px] rounded-2xl border border-white/5 bg-white/10 p-3 text-center backdrop-blur-md"
-                        >
-                            <span
-                                class="mb-0.5 block text-[9px] font-bold tracking-wider text-[#5A4D61] uppercase"
-                                >KUOTA</span
+                        <div class="mt-8 flex items-center gap-3">
+                            <div
+                                class="rounded-full bg-[#ADBA5E] p-2 text-white shadow-sm"
                             >
-                            <span class="text-sm font-bold">2 Slot</span>
+                                <svg
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <div
+                                class="text-sm font-bold tracking-wide text-white"
+                            >
+                                {{
+                                    new Date().toLocaleDateString('id-ID', {
+                                        month: 'long',
+                                        year: 'numeric',
+                                    })
+                                }}
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Decorative Lines (Abstract Tennis Court) -->
+                    <div
+                        class="absolute -right-10 -bottom-10 h-40 w-40 rounded-full border-[20px] border-white/20"
+                    ></div>
+                    <div
+                        class="absolute top-4 right-10 h-[2px] w-20 rotate-45 bg-white/10"
+                    ></div>
                 </div>
             </div>
 
-            <!-- BAGIAN 2: CONTENT (Scrollable) -->
+            <!-- BAGIAN TANGGAL (SCROLLABLE) -->
             <main class="no-scrollbar flex-1 overflow-y-auto px-6 pt-2 pb-24">
-                <!-- Date Picker -->
                 <div class="mb-8">
                     <div class="mb-4 flex items-center justify-between">
-                        <h3 class="text-lg font-bold text-[#5A4D61]">
+                        <h3 class="text-lg font-bold text-[#869A69]">
                             Pilih Tanggal
                         </h3>
                         <span
-                            class="rounded-lg bg-white px-2 py-1 text-xs font-medium text-[#C8A8E9]"
-                            >{{
+                            class="rounded-lg bg-[#E8EAF6] px-2 py-1 text-xs font-medium text-[#869A69]"
+                        >
+                            {{
                                 new Date(selectedDate).toLocaleDateString(
                                     'id-ID',
                                     { month: 'long' },
                                 )
-                            }}</span
-                        >
+                            }}
+                        </span>
                     </div>
+
+                    <!-- Scroll Horizontal Tanggal -->
                     <div
                         class="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"
                     >
@@ -227,11 +239,11 @@ const formatDateDisplay = (dateString) => {
                             v-for="day in dates"
                             :key="day.full_date"
                             @click="selectedDate = day.full_date"
-                            class="relative flex h-[75px] min-w-[60px] snap-center flex-col items-center justify-center rounded-[1.5rem] border border-transparent transition-all duration-300"
+                            class="relative flex h-[75px] min-w-[60px] snap-center flex-col items-center justify-center rounded-[1.5rem] border transition-all duration-300"
                             :class="[
                                 selectedDate === day.full_date
-                                    ? 'scale-105 bg-[#C8A8E9] text-white shadow-lg shadow-[#C8A8E9]/40'
-                                    : 'bg-white text-[#9D8CA6] hover:bg-white/80',
+                                    ? 'scale-105 bg-[#65AAC2] text-white shadow-lg shadow-[#65AAC2]/30'
+                                    : 'border-[#869A69] bg-white text-[#869A69] hover:border-[#65AAC2]',
                                 fullyBookedDates.includes(day.full_date) &&
                                 selectedDate !== day.full_date
                                     ? 'opacity-50 grayscale'
@@ -240,15 +252,16 @@ const formatDateDisplay = (dateString) => {
                         >
                             <span
                                 class="mb-1 text-[10px] font-bold tracking-widest uppercase"
-                                >{{ day.day_name }}</span
                             >
-                            <span class="text-lg font-black">{{
-                                day.date_num
-                            }}</span>
-                            <!-- Dot -->
+                                {{ day.day_name }}
+                            </span>
+                            <span class="text-lg font-black">
+                                {{ day.date_num }}
+                            </span>
+
                             <div
                                 v-if="fullyBookedDates.includes(day.full_date)"
-                                class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-[#F6BCBA]"
+                                class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-[#EF583D]"
                             ></div>
                         </button>
                     </div>
@@ -259,11 +272,13 @@ const formatDateDisplay = (dateString) => {
                     <!-- Pagi -->
                     <div>
                         <div class="mb-4 flex items-center gap-2">
+                            <!-- Dot Indikator Pagi: Menggunakan Court Blue -->
                             <span
-                                class="h-2 w-2 rounded-full bg-[#F6BCBA]"
+                                class="h-2 w-2 rounded-full bg-[#65AAC2]"
                             ></span>
+                            <!-- Label: Menggunakan Court Green -->
                             <span
-                                class="text-xs font-bold tracking-widest text-[#9D8CA6] uppercase"
+                                class="text-xs font-bold tracking-widest text-[#869A69] uppercase"
                                 >Pagi (06:00 - 11:00)</span
                             >
                         </div>
@@ -275,24 +290,26 @@ const formatDateDisplay = (dateString) => {
                                 class="group relative flex items-center justify-between rounded-[1.2rem] bg-white p-4 transition-all duration-300"
                                 :class="[
                                     getStatus(hour) === 'available'
-                                        ? 'cursor-pointer hover:shadow-lg hover:shadow-[#C8A8E9]/10'
-                                        : 'cursor-not-allowed bg-[#F2F0F4] opacity-50',
+                                        ? 'cursor-pointer hover:shadow-lg hover:shadow-[#65AAC2]/10'
+                                        : 'cursor-not-allowed bg-[#F9FAFB] opacity-50',
                                 ]"
                             >
                                 <div class="flex items-center gap-4">
+                                    <!-- Jam Icon: Background Court Blue tipis, Teks Court Blue -->
                                     <div
                                         class="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold"
                                         :class="
                                             getStatus(hour) === 'available'
-                                                ? 'bg-[#F4E7FB] text-[#C8A8E9]'
+                                                ? 'bg-[#65AAC2]/10 text-[#65AAC2]'
                                                 : 'bg-gray-100 text-gray-400'
                                         "
                                     >
                                         {{ String(hour).padStart(2, '0') }}
                                     </div>
                                     <div>
+                                        <!-- Jam Text: Abu tua netral -->
                                         <p
-                                            class="text-sm font-bold text-[#5A4D61]"
+                                            class="text-sm font-bold text-[#374151]"
                                         >
                                             {{
                                                 String(hour).padStart(2, '0')
@@ -304,12 +321,13 @@ const formatDateDisplay = (dateString) => {
                                                 )
                                             }}:00
                                         </p>
+                                        <!-- Status Text: Tennis Ball Green untuk Available -->
                                         <p
                                             class="mt-0.5 text-[10px] font-bold uppercase"
                                             :class="
                                                 getStatus(hour) === 'available'
-                                                    ? 'text-[#C8A8E9]'
-                                                    : 'text-[#F6BCBA]'
+                                                    ? 'text-[#ADBA5E]'
+                                                    : 'text-gray-400'
                                             "
                                         >
                                             {{
@@ -320,12 +338,12 @@ const formatDateDisplay = (dateString) => {
                                         </p>
                                     </div>
                                 </div>
-                                <!-- Add Button -->
+                                <!-- Add Button: Court Blue -->
                                 <button
                                     class="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300"
                                     :class="
                                         getStatus(hour) === 'available'
-                                            ? 'bg-[#C8A8E9] text-white shadow-md shadow-[#C8A8E9]/30 group-hover:scale-110'
+                                            ? 'bg-[#65AAC2] text-white shadow-md shadow-[#65AAC2]/30 group-hover:scale-110'
                                             : 'bg-transparent text-gray-300'
                                     "
                                 >
@@ -356,11 +374,12 @@ const formatDateDisplay = (dateString) => {
                     <!-- Sore -->
                     <div>
                         <div class="mb-4 flex items-center gap-2">
+                            <!-- Dot Indikator Sore: Menggunakan Tennis Ball Green untuk pembeda -->
                             <span
-                                class="h-2 w-2 rounded-full bg-[#C3C7F4]"
+                                class="h-2 w-2 rounded-full bg-[#ADBA5E]"
                             ></span>
                             <span
-                                class="text-xs font-bold tracking-widest text-[#9D8CA6] uppercase"
+                                class="text-xs font-bold tracking-widest text-[#869A69] uppercase"
                                 >Sore (15:00 - 21:00)</span
                             >
                         </div>
@@ -372,16 +391,17 @@ const formatDateDisplay = (dateString) => {
                                 class="group relative flex items-center justify-between rounded-[1.2rem] bg-white p-4 transition-all duration-300"
                                 :class="[
                                     getStatus(hour) === 'available'
-                                        ? 'cursor-pointer hover:shadow-lg hover:shadow-[#C8A8E9]/10'
-                                        : 'cursor-not-allowed bg-[#F2F0F4] opacity-50',
+                                        ? 'cursor-pointer hover:shadow-lg hover:shadow-[#65AAC2]/10'
+                                        : 'cursor-not-allowed bg-[#F9FAFB] opacity-50',
                                 ]"
                             >
                                 <div class="flex items-center gap-4">
+                                    <!-- Jam Icon: Tennis Ball Green tipis -->
                                     <div
                                         class="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold"
                                         :class="
                                             getStatus(hour) === 'available'
-                                                ? 'bg-[#EAEBFF] text-[#C3C7F4]'
+                                                ? 'bg-[#ADBA5E]/10 text-[#ADBA5E]'
                                                 : 'bg-gray-100 text-gray-400'
                                         "
                                     >
@@ -389,7 +409,7 @@ const formatDateDisplay = (dateString) => {
                                     </div>
                                     <div>
                                         <p
-                                            class="text-sm font-bold text-[#5A4D61]"
+                                            class="text-sm font-bold text-[#374151]"
                                         >
                                             {{
                                                 String(hour).padStart(2, '0')
@@ -405,8 +425,8 @@ const formatDateDisplay = (dateString) => {
                                             class="mt-0.5 text-[10px] font-bold uppercase"
                                             :class="
                                                 getStatus(hour) === 'available'
-                                                    ? 'text-[#C3C7F4]'
-                                                    : 'text-[#F6BCBA]'
+                                                    ? 'text-[#ADBA5E]'
+                                                    : 'text-gray-400'
                                             "
                                         >
                                             {{
@@ -421,7 +441,7 @@ const formatDateDisplay = (dateString) => {
                                     class="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300"
                                     :class="
                                         getStatus(hour) === 'available'
-                                            ? 'bg-[#C3C7F4] text-white shadow-md shadow-[#C3C7F4]/30 group-hover:scale-110'
+                                            ? 'bg-[#ADBA5E] text-white shadow-md shadow-[#ADBA5E]/30 group-hover:scale-110'
                                             : 'bg-transparent text-gray-300'
                                     "
                                 >
@@ -450,16 +470,22 @@ const formatDateDisplay = (dateString) => {
                     </div>
                 </div>
             </main>
-
             <!-- BAGIAN 3: BOTTOM NAVIGATION (Floating Glass) -->
             <div class="absolute right-6 bottom-6 left-6 z-30">
                 <nav
-                    class="flex items-center justify-between rounded-[2rem] border border-white/50 bg-gradient-to-br from-[#F4E7FB] via-[#FFF0F0] px-6 py-3 shadow-xl shadow-[#C8A8E9]/20 backdrop-blur-lg"
+                    class="flex items-center justify-between rounded-[2rem] border border-white/50 bg-gradient-to-br from-[#E7E5D7]/90 via-white/90 px-6 py-3 shadow-xl shadow-[#65AAC2]/10 backdrop-blur-lg"
                 >
-                    <!-- HOME (Active) -->
-                    <button
-                        class="flex w-12 flex-col items-center gap-1 text-[#C8A8E9]"
+                    <!-- 1. HOME -->
+                    <Link
+                        href="/booking"
+                        class="flex w-12 flex-col items-center gap-1 transition duration-300"
+                        :class="
+                            $page.url === '/booking'
+                                ? 'text-[#65AAC2]'
+                                : 'text-[#869A69] hover:text-[#65AAC2]'
+                        "
                     >
+                        <!-- Icon Home (Solid) -->
                         <svg
                             class="h-6 w-6"
                             fill="currentColor"
@@ -472,14 +498,19 @@ const formatDateDisplay = (dateString) => {
                         <span class="text-[8px] font-bold tracking-wide"
                             >Home</span
                         >
-                    </button>
+                    </Link>
 
-                    <!-- TIKET -->
-
+                    <!-- 2. E-TICKET -->
                     <Link
                         href="/my-tickets"
-                        class="flex w-12 flex-col items-center gap-1 text-[#9D8CA6] transition hover:text-[#7ECFE0]"
+                        class="flex w-12 flex-col items-center gap-1 transition duration-300"
+                        :class="
+                            $page.url.startsWith('/my-tickets')
+                                ? 'text-[#65AAC2]'
+                                : 'text-[#869A69] hover:text-[#65AAC2]'
+                        "
                     >
+                        <!-- Icon Ticket (Outline) -->
                         <svg
                             class="h-6 w-6"
                             fill="none"
@@ -493,15 +524,22 @@ const formatDateDisplay = (dateString) => {
                                 d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
                             ></path>
                         </svg>
-                        <span class="text-[10px] font-bold tracking-wide">
-                            E-Ticket
-                        </span>
+                        <span class="text-[10px] font-bold tracking-wide"
+                            >E-Ticket</span
+                        >
                     </Link>
 
-                    <!-- INFO -->
-                    <button
-                        class="flex w-12 flex-col items-center gap-1 text-[#9D8CA6] transition hover:text-[#C3C7F4]"
+                    <!-- 3. PROFIL -->
+                    <Link
+                        href="/info"
+                        class="flex w-12 flex-col items-center gap-1 transition duration-300"
+                        :class="
+                            $page.url.startsWith('/info')
+                                ? 'text-[#65AAC2]'
+                                : 'text-[#869A69] hover:text-[#65AAC2]'
+                        "
                     >
+                        <!-- Icon User (Outline) -->
                         <svg
                             class="h-6 w-6"
                             fill="none"
@@ -512,16 +550,15 @@ const formatDateDisplay = (dateString) => {
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                             ></path>
                         </svg>
                         <span class="text-[8px] font-bold tracking-wide"
-                            >Info</span
+                            >Profil</span
                         >
-                    </button>
+                    </Link>
                 </nav>
             </div>
-
             <!-- MODAL KONFIRMASI -->
             <div
                 v-if="showModal"
@@ -529,128 +566,123 @@ const formatDateDisplay = (dateString) => {
             >
                 <div
                     @click="showModal = false"
-                    class="absolute inset-0 bg-[#5A4D61]/40 backdrop-blur-sm transition-opacity"
+                    class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"
                 ></div>
                 <div
                     class="animate-slide-up relative z-10 max-h-[90vh] w-full max-w-[480px] overflow-y-auto rounded-t-[2.5rem] bg-white p-8 shadow-2xl sm:rounded-[2.5rem]"
                 >
                     <div
-                        class="mx-auto mb-8 h-1.5 w-12 rounded-full bg-[#F2F0F4]"
+                        class="mx-auto mb-8 h-1.5 w-12 rounded-full bg-[#E7E5D7]"
                     ></div>
 
                     <div class="mb-8 flex items-center justify-between">
                         <div>
-                            <h2 class="text-2xl font-black text-[#5A4D61]">
+                            <h2 class="text-2xl font-black text-[#65AAC2]">
                                 Booking
                             </h2>
-                            <p class="mt-1 text-sm font-medium text-[#9D8CA6]">
+                            <p class="mt-1 text-sm font-medium text-[#869A69]">
                                 {{ formatDateDisplay(selectedDate) }} •
                                 {{ selectedSlot?.label }}
                             </p>
                         </div>
                     </div>
 
-                    <form @submit.prevent="submitBooking" class="space-y-5">
-                        <!-- Input Unit -->
-                        <div class="group relative">
-                            <label
-                                class="mb-2 ml-1 block text-xs font-bold tracking-wider text-[#9D8CA6] uppercase"
-                                >Unit Apartemen</label
+                    <!-- ERROR FIELD -->
+                    <div
+                        v-if="Object.keys(form.errors).length > 0"
+                        class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4"
+                    >
+                        <div class="flex items-start gap-3">
+                            <!-- Icon Warning -->
+                            <svg
+                                class="mt-0.5 h-5 w-5 text-red-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
                             >
-                            <input
-                                type="text"
-                                v-model="unitSearch"
-                                @focus="showUnitDropdown = true"
-                                placeholder="Cth: TWR-A-0101"
-                                class="w-full rounded-2xl border-none bg-[#F4E7FB]/50 py-4 pl-5 font-bold text-[#5A4D61] uppercase placeholder-[#C8A8E9]/50 transition focus:bg-[#F4E7FB] focus:ring-2 focus:ring-[#C8A8E9]"
-                            />
-                            <div
-                                v-if="
-                                    showUnitDropdown && filteredUnits.length > 0
-                                "
-                                class="absolute z-50 mt-2 max-h-48 w-full overflow-y-auto rounded-2xl border border-[#F4E7FB] bg-white p-2 shadow-xl"
-                            >
-                                <div
-                                    v-for="unit in filteredUnits"
-                                    :key="unit"
-                                    @click="selectUnit(unit)"
-                                    class="cursor-pointer rounded-xl px-4 py-3 text-sm font-bold text-[#5A4D61] hover:bg-[#F4E7FB]"
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                />
+                            </svg>
+                            <div>
+                                <h4 class="text-sm font-bold text-red-800">
+                                    Gagal Booking
+                                </h4>
+                                <ul
+                                    class="mt-1 list-disc pl-4 text-xs font-medium text-red-600"
                                 >
-                                    {{ unit }}
-                                </div>
+                                    <li
+                                        v-for="(error, key) in form.errors"
+                                        :key="key"
+                                    >
+                                        {{ error }}
+                                    </li>
+                                </ul>
                             </div>
-                            <p
-                                v-if="form.errors.unit_number"
-                                class="mt-2 ml-1 text-xs font-bold text-[#F6BCBA]"
-                            >
-                                {{ form.errors.unit_number }}
-                            </p>
                         </div>
+                    </div>
 
-                        <!-- Input PIN -->
-                        <div>
-                            <label
-                                class="mb-2 ml-1 block text-xs font-bold tracking-wider text-[#9D8CA6] uppercase"
-                                >PIN Akses</label
+                    <form @submit.prevent="submitBooking" class="space-y-5">
+                        <!--  INFO UNIT -->
+                        <div
+                            class="rounded-2xl border border-[#869A69]/20 bg-[#E7E5D7]/50 p-4"
+                        >
+                            <div
+                                class="text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
                             >
-                            <input
-                                v-model="form.access_code"
-                                type="password"
-                                placeholder=""
-                                class="[#C8A8E9]/50 w-full rounded-2xl border-none bg-[#F4E7FB]/50 py-4 pl-5 font-bold tracking-widest text-[#5A4D61] placeholder-[#C8A8E9]/50 transition focus:bg-[#F4E7FB] focus:ring-2 focus:ring-[#C8A8E9]"
-                            />
-                            <p
-                                v-if="form.errors.access_code"
-                                class="mt-2 ml-1 text-xs font-bold text-[#F6BCBA]"
-                            >
-                                {{ form.errors.access_code }}
-                            </p>
+                                Booking Atas Nama Unit
+                            </div>
+                            <div class="mt-1 text-xl font-black text-[#374151]">
+                                {{ userUnit }}
+                            </div>
                         </div>
-
                         <!-- Input Nama -->
                         <div>
                             <label
-                                class="mb-2 ml-1 block text-xs font-bold tracking-wider text-[#9D8CA6] uppercase"
+                                class="mb-2 ml-1 block text-xs font-bold tracking-wider text-[#869A69] uppercase"
                                 >Nama Pemain</label
                             >
                             <input
                                 v-model="form.player_names"
                                 type="text"
                                 placeholder="Budi & Keluarga"
-                                class="w-full rounded-2xl border-none bg-[#F4E7FB]/50 py-4 pl-5 font-medium text-[#5A4D61] placeholder-[#C8A8E9]/50 transition focus:bg-[#F4E7FB] focus:ring-2 focus:ring-[#C8A8E9]"
+                                class="w-full rounded-2xl border-none bg-[#E7E5D7] py-4 pl-5 font-medium text-[#374151] placeholder-[#869A69]/50 transition focus:bg-white focus:ring-2 focus:ring-[#65AAC2]"
                             />
                         </div>
 
                         <!-- Terms -->
                         <div
-                            class="flex items-start gap-3 rounded-2xl border border-[#F2F0F4] bg-[#FFF] p-4"
+                            class="flex items-start gap-3 rounded-2xl border border-[#E7E5D7] bg-white p-4"
                             :class="{
-                                'border-[#F6BCBA]': form.errors.agree_terms,
+                                'border-red-400': form.errors.agree_terms,
                             }"
                         >
                             <input
                                 id="terms"
                                 type="checkbox"
                                 v-model="form.agree_terms"
-                                class="mt-1 h-5 w-5 rounded-md border-[#C8A8E9] text-[#C8A8E9] focus:ring-[#C8A8E9]"
+                                class="mt-1 h-5 w-5 rounded-md border-[#869A69] text-[#65AAC2] focus:ring-[#65AAC2]"
                             />
                             <label
                                 for="terms"
-                                class="text-xs leading-relaxed font-medium text-[#9D8CA6]"
+                                class="text-xs leading-relaxed font-medium text-[#869A69]"
                             >
                                 Saya setuju dengan tata tertib. Keterlambatan
                                 >15 menit sanksi
-                                <span class="font-bold text-[#F6BCBA]"
+                                <span class="font-bold text-red-400"
                                     >banned 1 minggu.</span
                                 >
                             </label>
                         </div>
 
-                        <!-- Button -->
+                        <!-- Button: Court Blue Solid untuk kesan profesional -->
                         <button
                             :disabled="form.processing"
                             type="submit"
-                            class="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#C8A8E9] to-[#E3AADD] py-4 font-bold text-white shadow-xl shadow-[#C8A8E9]/30 transition hover:opacity-90 disabled:opacity-70"
+                            class="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#65AAC2] py-4 font-bold text-white shadow-xl shadow-[#65AAC2]/30 transition hover:opacity-90 disabled:opacity-70"
                         >
                             <span v-if="form.processing">Memproses...</span>
                             <span v-else>Booking Sekarang</span>

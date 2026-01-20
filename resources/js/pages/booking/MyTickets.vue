@@ -1,29 +1,39 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
-// Props dari Controller
+// [REVISI] Props menerima Object Resource
 const props = defineProps({
-    bookings: Array, // Hasil pencarian (bisa null jika belum cari)
-    searchedUnit: String, // Unit yang sedang dicari
+    activeTickets: Object,
+    historyTickets: Object,
+    userUnit: String,
 });
 
-const form = useForm({
-    unit_number: '',
-    access_code: '',
-});
+// [REVISI] Ambil data dari dalam wrapper Resource (.data)
+// Tambahkan '|| []' untuk mencegah error jika data kosong
+const activeList = props.activeTickets?.data || [];
+const historyList = props.historyTickets?.data || [];
 
-const submitCheck = () => {
-    form.post('/my-tickets', {
-        onFinish: () => form.reset('access_code'),
-    });
+const activeTab = ref('active');
+const showQrModal = ref(false);
+const currentQrCode = ref('');
+const currentBookingCode = ref('');
+
+// [REVISI] Langsung terima gambar Base64 dari Backend
+// Tidak perlu library 'qrcode' JS lagi
+const openQrModal = (code, base64Image) => {
+    currentBookingCode.value = code;
+    currentQrCode.value = base64Image;
+    showQrModal.value = true;
 };
 
-// Helper Format Tanggal
+// ... (Sisa helper formatDate, formatTime, getStatusBadge TETAP SAMA) ...
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString('id-ID', {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
+        year: 'numeric',
     });
 };
 
@@ -38,136 +48,97 @@ const formatTime = (start, end) => {
     });
     return `${s} - ${e}`;
 };
+
+const getStatusBadge = (status) => {
+    switch (status) {
+        case 'booked':
+            return {
+                text: 'Booked',
+                class: 'bg-blue-100 text-blue-700 border border-blue-200',
+            };
+        case 'checked_in':
+            return {
+                text: 'Sudah Check-in',
+                class: 'bg-green-100 text-green-700 border border-green-200',
+            };
+        case 'no_show':
+            return {
+                text: 'Hangus / No Show',
+                class: 'bg-red-100 text-red-700 border border-red-200',
+            };
+        case 'cancelled':
+            return {
+                text: 'Dibatalkan',
+                class: 'bg-gray-100 text-gray-500 border border-gray-200',
+            };
+        default:
+            return { text: status, class: 'bg-gray-100 text-gray-600' };
+    }
+};
 </script>
 
 <template>
     <Head title="Tiket Saya" />
 
     <div
-        class="flex h-[100dvh] justify-center overflow-hidden bg-gradient-to-br from-[#F4E7FB] via-[#FFF0F0] to-[#E8EAF6] font-sans text-[#5A4D61] antialiased"
+        class="flex h-[100dvh] justify-center overflow-hidden bg-[#E7E5D7] font-sans text-slate-800 antialiased"
     >
         <div
-            class="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden border-x border-white/40 bg-white/60 shadow-2xl backdrop-blur-md"
+            class="relative flex h-full w-full max-w-[480px] flex-col overflow-hidden border-x border-[#869A69]/20 bg-white shadow-2xl"
         >
-            <!-- BAGIAN 1: HEADER -->
-            <div class="z-20 flex-none px-6 pt-8 pb-4">
-                <h1 class="text-2xl font-black tracking-tight text-[#5A4D61]">
-                    Tiket Saya <span class="text-[#FF9973]">.</span>
-                </h1>
-                <p class="mt-1 text-xs font-medium text-[#9D8CA6]">
-                    Cek jadwal main aktif unit Anda.
-                </p>
-            </div>
-
-            <!-- BAGIAN 2: KONTEN UTAMA -->
-            <main class="no-scrollbar flex-1 overflow-y-auto px-6 pt-2 pb-24">
-                <!-- KONDISI A: BELUM ADA HASIL (Tampilkan Form Login) -->
-                <div
-                    v-if="!bookings"
-                    class="flex h-[60vh] flex-col justify-center"
-                >
-                    <div
-                        class="rounded-[2rem] border border-white bg-white/80 p-6 shadow-lg backdrop-blur-xl"
-                    >
-                        <div class="mb-6 text-center">
-                            <div
-                                class="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#F4E7FB] text-[#C8A8E9]"
-                            >
-                                <svg
-                                    class="h-8 w-8"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.542 6.356 15 7zm0 0v2a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-                                    ></path>
-                                </svg>
-                            </div>
-                            <h3 class="font-bold text-[#5A4D61]">
-                                Akses Data Booking
-                            </h3>
-                            <p class="text-xs text-[#9D8CA6]">
-                                Masukkan PIN Unit untuk melihat tiket.
-                            </p>
-                        </div>
-
-                        <form @submit.prevent="submitCheck" class="space-y-4">
-                            <div>
-                                <label
-                                    class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[#9D8CA6] uppercase"
-                                    >Unit</label
-                                >
-                                <input
-                                    v-model="form.unit_number"
-                                    type="text"
-                                    placeholder="TWR-A-0101"
-                                    class="w-full rounded-2xl border-none bg-[#F9F9F9] py-3 pl-4 font-bold text-[#5A4D61] uppercase transition focus:ring-2 focus:ring-[#C8A8E9]"
-                                />
-                                <p
-                                    v-if="form.errors.unit_number"
-                                    class="mt-1 ml-1 text-[10px] font-bold text-[#FF9973]"
-                                >
-                                    {{ form.errors.unit_number }}
-                                </p>
-                            </div>
-                            <div>
-                                <label
-                                    class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[#9D8CA6] uppercase"
-                                    >PIN</label
-                                >
-                                <input
-                                    v-model="form.access_code"
-                                    type="password"
-                                    placeholder="••••••"
-                                    class="w-full rounded-2xl border-none bg-[#F9F9F9] py-3 pl-4 font-bold tracking-widest text-[#5A4D61] transition focus:ring-2 focus:ring-[#C8A8E9]"
-                                />
-                                <p
-                                    v-if="form.errors.access_code"
-                                    class="mt-1 ml-1 text-[10px] font-bold text-[#FF9973]"
-                                >
-                                    {{ form.errors.access_code }}
-                                </p>
-                            </div>
-                            <button
-                                :disabled="form.processing"
-                                type="submit"
-                                class="mt-2 w-full rounded-2xl bg-[#0A0D25] py-3.5 font-bold text-white shadow-lg transition hover:opacity-90"
-                            >
-                                {{
-                                    form.processing
-                                        ? 'Memeriksa...'
-                                        : 'Cek Tiket'
-                                }}
-                            </button>
-                        </form>
+            <!-- HEADER -->
+            <div class="z-10 flex-none bg-white px-6 pt-10 pb-4 shadow-sm">
+                <div class="mb-6 flex items-center justify-between">
+                    <h1 class="text-2xl font-black text-[#65AAC2]">
+                        Tiket Saya
+                    </h1>
+                    <div class="rounded-full bg-[#E7E5D7] px-3 py-1">
+                        <span class="text-[10px] font-bold text-[#869A69]">{{
+                            userUnit
+                        }}</span>
                     </div>
                 </div>
 
-                <!-- KONDISI B: SUDAH ADA DATA (Tampilkan List) -->
-                <div v-else>
-                    <div class="mb-4 flex items-center justify-between">
-                        <span
-                            class="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#7ECFE0]"
-                            >Unit: {{ searchedUnit }}</span
-                        >
-                        <a
-                            href="/my-tickets"
-                            class="text-xs font-bold text-[#FF9973] hover:underline"
-                            >Keluar</a
-                        >
-                    </div>
-
-                    <!-- KONDISI C: DATA KOSONG (Tidak ada booking) -->
-                    <div
-                        v-if="bookings.length === 0"
-                        class="py-20 text-center opacity-60"
+                <!-- TAB SWITCHER -->
+                <div class="flex rounded-xl bg-[#F3F4F6] p-1">
+                    <button
+                        @click="activeTab = 'active'"
+                        class="flex-1 rounded-lg py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-300"
+                        :class="
+                            activeTab === 'active'
+                                ? 'bg-white text-[#65AAC2] shadow-sm'
+                                : 'text-gray-400 hover:text-gray-600'
+                        "
                     >
+                        Akan Datang ({{ activeList.length }})
+                    </button>
+                    <button
+                        @click="activeTab = 'history'"
+                        class="flex-1 rounded-lg py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-300"
+                        :class="
+                            activeTab === 'history'
+                                ? 'bg-white text-[#65AAC2] shadow-sm'
+                                : 'text-gray-400 hover:text-gray-600'
+                        "
+                    >
+                        Riwayat
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCROLLABLE LIST -->
+            <main
+                class="no-scrollbar flex-1 overflow-y-auto bg-[#FAFAFA] px-6 pt-6 pb-24"
+            >
+                <!-- LIST ACTIVE (Gunakan activeList) -->
+                <div v-if="activeTab === 'active'" class="space-y-4">
+                    <div
+                        v-if="activeList.length === 0"
+                        class="flex flex-col items-center justify-center py-10 opacity-60"
+                    >
+                        <!-- Icon Empty -->
                         <svg
-                            class="mx-auto mb-2 h-16 w-16 text-[#C4B2AE]"
+                            class="mb-3 h-16 w-16 text-gray-300"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -176,71 +147,90 @@ const formatTime = (start, end) => {
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                                d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
                             ></path>
                         </svg>
-                        <p class="text-sm font-bold">Belum ada jadwal main.</p>
+                        <p class="text-sm font-bold text-gray-400">
+                            Belum ada tiket aktif
+                        </p>
                         <Link
-                            href="/"
-                            class="mt-2 inline-block text-xs text-[#7ECFE0]"
-                            >Buat Booking Baru</Link
+                            href="/booking"
+                            class="mt-2 text-xs font-bold text-[#65AAC2] hover:underline"
+                            >Booking Sekarang</Link
                         >
                     </div>
 
-                    <!-- LIST CARD -->
-                    <div v-else class="space-y-4">
+                    <div
+                        v-for="ticket in activeList"
+                        :key="ticket.id"
+                        class="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md transition hover:shadow-lg"
+                    >
                         <div
-                            v-for="book in bookings"
-                            :key="book.id"
-                            class="group relative overflow-hidden rounded-[1.5rem] border border-white bg-white p-5 shadow-sm transition hover:shadow-md"
-                        >
-                            <!-- Garis Indikator -->
-                            <div
-                                class="absolute top-0 bottom-0 left-0 w-2 bg-[#7ECFE0]"
-                            ></div>
-
-                            <div class="flex items-start justify-between pl-2">
+                            class="absolute top-0 bottom-0 left-0 w-1.5 bg-[#65AAC2]"
+                        ></div>
+                        <div class="p-5 pl-7">
+                            <div class="mb-4 flex items-start justify-between">
                                 <div>
                                     <p
-                                        class="mb-0.5 text-[10px] font-bold tracking-wider text-[#9D8CA6] uppercase"
+                                        class="mb-1 text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
                                     >
-                                        Tanggal Main
+                                        Jadwal Main
                                     </p>
-                                    <h4
-                                        class="text-lg font-black text-[#5A4D61]"
+                                    <h3
+                                        class="text-lg font-black text-slate-700"
                                     >
-                                        {{ formatDate(book.start_time) }}
-                                    </h4>
-                                    <p
-                                        class="mt-1 text-sm font-bold text-[#7ECFE0]"
-                                    >
+                                        {{ formatDate(ticket.start_time) }}
+                                    </h3>
+                                    <p class="text-sm font-bold text-[#65AAC2]">
                                         {{
                                             formatTime(
-                                                book.start_time,
-                                                book.end_time,
+                                                ticket.start_time,
+                                                ticket.end_time,
                                             )
                                         }}
                                     </p>
                                 </div>
                                 <div class="text-right">
                                     <span
-                                        class="rounded-lg bg-[#F4E7FB] px-2 py-1 text-[10px] font-bold text-[#C8A8E9]"
-                                        >CONFIRMED</span
+                                        class="inline-block rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold tracking-wide text-blue-600 uppercase"
                                     >
+                                        {{ ticket.booking_code }}
+                                    </span>
                                 </div>
                             </div>
 
                             <div
-                                class="mt-4 flex items-center justify-between border-t border-dashed border-slate-100 pt-3 pl-2"
+                                class="flex items-center gap-2 border-t border-dashed border-gray-200 pt-4"
                             >
-                                <span
-                                    class="font-mono text-[10px] text-[#C4B2AE]"
-                                    >{{ book.booking_code }}</span
+                                <!-- [REVISI] KIRIM GAMBAR QR KE MODAL -->
+                                <button
+                                    @click="
+                                        openQrModal(
+                                            ticket.booking_code,
+                                            ticket.qr_code_image,
+                                        )
+                                    "
+                                    class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#65AAC2] py-2.5 text-xs font-bold text-white transition hover:bg-[#528ea3]"
                                 >
+                                    <svg
+                                        class="h-4 w-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M12 4v1m6 11h2m-6 0h-2v4h2v-4zM6 6h6v6H6V6zm12 0h6v6h-6V6zm-6 12h6v6h-6v-6z"
+                                        ></path>
+                                    </svg>
+                                    Lihat QR
+                                </button>
                                 <a
-                                    :href="`/ticket/${book.booking_code}/pdf`"
+                                    :href="`/ticket/${ticket.booking_code}/pdf`"
                                     target="_blank"
-                                    class="flex items-center gap-1 text-xs font-bold text-[#FF9973] hover:text-[#FF865B]"
+                                    class="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50"
                                 >
                                     <svg
                                         class="h-4 w-4"
@@ -255,62 +245,129 @@ const formatTime = (start, end) => {
                                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                                         ></path>
                                     </svg>
-                                    Download PDF
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- LIST HISTORY (Gunakan historyList) -->
+                <div v-if="activeTab === 'history'" class="space-y-4">
+                    <div
+                        v-if="historyList.length === 0"
+                        class="py-10 text-center text-xs font-bold text-gray-400"
+                    >
+                        Belum ada riwayat booking
+                    </div>
+
+                    <div
+                        v-for="ticket in historyList"
+                        :key="ticket.id"
+                        class="relative rounded-2xl border bg-white p-5 transition-all"
+                        :class="
+                            ticket.status === 'checked_in'
+                                ? 'border-green-200 bg-green-50/30 shadow-sm'
+                                : 'border-gray-100 opacity-70'
+                        "
+                    >
+                        <div class="mb-2 flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-gray-600">
+                                {{ formatDate(ticket.start_time) }}
+                            </h3>
+                            <div
+                                class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-bold tracking-wide uppercase"
+                                :class="getStatusBadge(ticket.status).class"
+                            >
+                                <svg
+                                    v-if="ticket.status === 'checked_in'"
+                                    class="h-3 w-3"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="3"
+                                        d="M5 13l4 4L19 7"
+                                    ></path>
+                                </svg>
+                                <svg
+                                    v-if="ticket.status === 'no_show'"
+                                    class="h-3 w-3"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="3"
+                                        d="M6 18L18 6M6 6l12 12"
+                                    ></path>
+                                </svg>
+                                {{ getStatusBadge(ticket.status).text }}
+                            </div>
+                        </div>
+                        <p class="text-xs font-medium text-gray-400">
+                            {{ formatTime(ticket.start_time, ticket.end_time) }}
+                        </p>
+                        <div class="mt-3 flex items-center justify-between">
+                            <span class="font-mono text-[10px] text-gray-400"
+                                >#{{ ticket.booking_code }}</span
+                            >
+                            <a
+                                :href="`/ticket/${ticket.booking_code}/pdf`"
+                                target="_blank"
+                                class="text-[10px] font-bold text-[#65AAC2] hover:underline"
+                                >Download Ulang</a
+                            >
+                        </div>
+                    </div>
+                </div>
             </main>
 
-            <!-- BAGIAN 3: BOTTOM NAVIGATION (Sama seperti Home) -->
+            <!-- BAGIAN 3: BOTTOM NAVIGATION (Floating Glass) -->
             <div class="absolute right-6 bottom-6 left-6 z-30">
                 <nav
-                    class="flex items-center justify-between rounded-[2rem] border border-white/50 bg-white/90 px-6 py-3 shadow-xl shadow-[#C8A8E9]/20 backdrop-blur-lg"
+                    class="flex items-center justify-between rounded-[2rem] border border-white/50 bg-gradient-to-br from-[#E7E5D7]/90 via-white/90 px-6 py-3 shadow-xl shadow-[#65AAC2]/10 backdrop-blur-lg"
                 >
-                    <!-- HOME -->
+                    <!-- 1. HOME -->
                     <Link
-                        href="/"
-                        class="flex w-12 flex-col items-center gap-1 text-[#9D8CA6] transition hover:text-[#FF9973]"
+                        href="/booking"
+                        class="flex w-12 flex-col items-center gap-1 transition duration-300"
+                        :class="
+                            $page.url === '/booking'
+                                ? 'text-[#65AAC2]'
+                                : 'text-[#869A69] hover:text-[#65AAC2]'
+                        "
                     >
-                        <svg
-                            class="h-6 w-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                            ></path>
-                        </svg>
-                    </Link>
-
-                    <!-- TIKET (Active) -->
-                    <Link
-                        href="/my-tickets"
-                        class="flex w-12 flex-col items-center gap-1 text-[#7ECFE0]"
-                    >
+                        <!-- Icon Home (Solid) -->
                         <svg
                             class="h-6 w-6"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                         >
                             <path
-                                d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                                d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
                             ></path>
                         </svg>
                         <span class="text-[8px] font-bold tracking-wide"
-                            >Tiket</span
+                            >Home</span
                         >
                     </Link>
 
-                    <!-- INFO -->
-                    <button
-                        class="flex w-12 flex-col items-center gap-1 text-[#9D8CA6] transition hover:text-[#FF9973]"
+                    <!-- 2. E-TICKET -->
+                    <Link
+                        href="/my-tickets"
+                        class="flex w-12 flex-col items-center gap-1 transition duration-300"
+                        :class="
+                            $page.url.startsWith('/my-tickets')
+                                ? 'text-[#65AAC2]'
+                                : 'text-[#869A69] hover:text-[#65AAC2]'
+                        "
                     >
+                        <!-- Icon Ticket (Outline) -->
                         <svg
                             class="h-6 w-6"
                             fill="none"
@@ -321,12 +378,89 @@ const formatTime = (start, end) => {
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
                             ></path>
                         </svg>
-                    </button>
+                        <span class="text-[10px] font-bold tracking-wide"
+                            >E-Ticket</span
+                        >
+                    </Link>
+
+                    <!-- 3. PROFIL -->
+                    <Link
+                        href="/info"
+                        class="flex w-12 flex-col items-center gap-1 transition duration-300"
+                        :class="
+                            $page.url.startsWith('/info')
+                                ? 'text-[#65AAC2]'
+                                : 'text-[#869A69] hover:text-[#65AAC2]'
+                        "
+                    >
+                        <!-- Icon User (Outline) -->
+                        <svg
+                            class="h-6 w-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            ></path>
+                        </svg>
+                        <span class="text-[8px] font-bold tracking-wide"
+                            >Profil</span
+                        >
+                    </Link>
                 </nav>
+            </div>
+
+            <!-- MODAL QR PREVIEW (SUDAH BENAR) -->
+            <div
+                v-if="showQrModal"
+                class="fixed inset-0 z-[60] flex items-center justify-center bg-[#4F5D46]/60 p-6 backdrop-blur-sm"
+                @click="showQrModal = false"
+            >
+                <div
+                    class="w-full max-w-xs rounded-[2rem] bg-white p-8 text-center shadow-2xl"
+                    @click.stop
+                >
+                    <h3 class="mb-4 text-lg font-bold text-[#4F5D46]">
+                        QR Check-in
+                    </h3>
+                    <div
+                        class="mb-6 inline-block rounded-2xl border border-[#869A69]/30 p-4"
+                    >
+                        <img
+                            :src="currentQrCode"
+                            class="h-56 w-56 mix-blend-multiply"
+                        />
+                    </div>
+                    <p
+                        class="mb-4 rounded-lg bg-blue-50 py-2 font-mono text-xs font-bold text-[#65AAC2]"
+                    >
+                        {{ currentBookingCode }}
+                    </p>
+                    <button
+                        @click="showQrModal = false"
+                        class="w-full rounded-xl bg-[#65AAC2] py-3 text-sm font-bold text-white transition hover:opacity-90"
+                    >
+                        Tutup
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+</style>

@@ -14,8 +14,7 @@ class StoreBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'unit_number' => ['required', 'string', 'exists:units,unit_number'], // Pastikan unit terdaftar
-            'access_code' => ['required', 'string'],
+
             'player_names' => ['required', 'string', 'max:100'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'hour' => ['required', 'integer', 'min:6', 'max:22'],

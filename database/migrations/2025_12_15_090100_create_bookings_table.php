@@ -39,4 +39,9 @@ return new class extends Migration
             $table->index(['start_time', 'end_time', 'status']);
         });
     }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('bookings');
+    }
 };

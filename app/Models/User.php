@@ -10,6 +10,21 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable
 {
+    // DEFINISI ROLE (Agar tidak hardcode string di controller)
+    const ROLE_ADMIN = 'admin';
+
+    const ROLE_SECURITY = 'security';
+
+    // Helper Method: Menentukan tujuan redirect
+    public function getRedirectRoute(): string
+    {
+        return match ($this->role) {
+            self::ROLE_SECURITY => 'security.scan',
+            self::ROLE_ADMIN => 'admin.dashboard',
+            default => 'home', // Default kalau role tidak dikenali
+        };
+    }
+
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
@@ -22,6 +37,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
