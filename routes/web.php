@@ -64,6 +64,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::post('/dashboard/booking', [DashboardController::class, 'store'])->name('dashboard.store');
+        Route::post('/dashboard/booking/{booking}/cancel', [DashboardController::class, 'cancel'])
+            ->name('booking.cancel');
         Route::resource('users', UserController::class);
 
         // 2. Unit Management (CRUD)
@@ -79,6 +81,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         // --- TAMBAHKAN 2 BARIS INI AGAR TIDAK 404 ---
         Route::put('/maintenance/{id}', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::delete('/maintenance/{id}', [MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
+
     });
 
 // 5. PROFIL

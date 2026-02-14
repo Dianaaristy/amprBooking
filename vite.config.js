@@ -10,7 +10,7 @@ export default defineConfig({
         port: 5173,
         cors: true,
         hmr: {
-            host: '192.168.240.16', // IP laptop kamu
+            host: '192.168.98.16', // IP laptop kamu
         },
     },
     plugins: [

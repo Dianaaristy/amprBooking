@@ -21,10 +21,9 @@ class BookingController extends Controller
      */
     public function index()
     {
-        // PENTING: Gunakan Timezone Jakarta
         $today = Carbon::now('Asia/Jakarta');
 
-        // --- 1. FITUR DYNAMIC DATE (1 BULAN) ---
+        // 1. Dynamic Date (1 Bulan)
         $endDate = $today->copy()->addMonth();
         $daysDifference = $today->diffInDays($endDate);
 
@@ -33,40 +32,68 @@ class BookingController extends Controller
 
             return [
                 'full_date' => $date->format('Y-m-d'),
-                'day_name' => $date->locale('id')->isoFormat('ddd'), // Sen, Sel
+                'day_name' => $date->locale('en')->isoFormat('ddd'), // MON, TUE, WED
                 'date_num' => $date->format('d'),
-                'month_name' => $date->locale('id')->isoFormat('MMM'), // Des
+                'month_name' => $date->locale('en')->isoFormat('MMM'), // Jan, Feb
                 'is_today' => $date->isToday(),
             ];
+
         });
 
-        // 2. Ambil Data Slot Terisi
+        // 2. [REVISI] Ambil Booking + Relasi Unit
+        // Kita butuh 'unit:id,unit_number' agar frontend bisa menampilkan "Booked By TWR-A..."
         $rawBookings = Booking::active()
+            ->with('unit:id,unit_number') // <--- PENTING: Eager load unit
             ->whereDate('start_time', '>=', $today->format('Y-m-d'))
             ->whereDate('start_time', '<=', $endDate->format('Y-m-d'))
-            ->get(['start_time']);
+            ->get(['id', 'unit_id', 'start_time', 'status', 'player_names']);
 
         $bookedSlots = $rawBookings->map(function ($b) {
+            // Logic Info Maintenance
+            $info = '-';
+            if ($b->status === 'maintenance') {
+                $info = is_array($b->player_names) ? ($b->player_names[0] ?? 'Perbaikan') : 'Maintenance';
+            }
+
             return [
                 'date' => $b->start_time->format('Y-m-d'),
                 'hour' => (int) $b->start_time->format('H'),
+                'status' => $b->status,
+                'info' => $info,
+                // [REVISI] Kirim Nomor Unit ke Frontend
+                'unit_number' => $b->unit ? $b->unit->unit_number : 'Occupied',
             ];
         });
 
-        // 3. Logic Tanggal Penuh (16 Slot per hari)
+        // 3. Logic Tanggal Penuh
         $bookingsPerDate = $bookedSlots->groupBy('date')->map->count();
         $fullyBookedDates = $bookingsPerDate->filter(fn ($count) => $count >= 16)->keys()->toArray();
 
-        // [REVISI] Ambil Nomor Unit dari Session untuk ditampilkan di Header Frontend
-        // Tidak perlu $units dropdown lagi
-        $userUnit = session('resident_unit_number', 'Unknown Unit');
+        // 4. [REVISI] Cek Status Banned Unit yang sedang Login
+        $unitId = session('resident_unit_id');
+        $userUnitNumber = session('resident_unit_number');
+
+        $currentUnit = Unit::find($unitId);
+
+        // Default values
+        $isBanned = false;
+        $banMessage = '';
+
+        if ($currentUnit && $currentUnit->is_banned_until && now() < $currentUnit->is_banned_until) {
+            $isBanned = true;
+            $dateEnd = Carbon::parse($currentUnit->is_banned_until)->format('d M Y');
+            $banMessage = "Unit Anda sedang disanksi hingga {$dateEnd} dikarenakan pelanggaran aturan lapangan.";
+        }
 
         return Inertia::render('booking/Home', [
             'dates' => $dates,
             'bookedSlots' => $bookedSlots,
-            // 'units' => $units, <-- SUDAH TIDAK DIPAKAI
             'fullyBookedDates' => $fullyBookedDates,
-            'userUnit' => $userUnit, // <-- KIRIM KE FRONTEND
+            'userUnit' => $userUnitNumber,
+
+            // [REVISI] Kirim Props Banned ke Frontend
+            'isUserBanned' => $isBanned,
+            'banMessage' => $banMessage,
         ]);
     }
 
@@ -75,42 +102,43 @@ class BookingController extends Controller
      */
     public function store(StoreBookingRequest $request)
     {
-        // Setup Waktu (Timezone Jakarta)
+        // 1. PERSIAPAN WAKTU (Dari Input Frontend: date & hour)
+        // Kita harus ubah input "2023-10-25" dan jam "8" menjadi format Tanggal yang dimengerti database
         $startTime = Carbon::createFromFormat('Y-m-d H', "$request->date $request->hour", 'Asia/Jakarta');
         $endTime = $startTime->copy()->addHour();
 
-        // --- VALIDASI 3: CONCURRENCY (ATOMIC LOCK) ---
+        // 2. ATOMIC LOCK (Mencegah Double Booking)
+        // Supaya tidak ada 2 orang yang booking di detik yang sama persis
         $lockKey = "booking_lock_{$startTime->timestamp}";
-        $lock = Cache::lock($lockKey, 5); // 5 detik
+        $lock = Cache::lock($lockKey, 5);
 
         if (! $lock->get()) {
-            throw ValidationException::withMessages(['slot' => 'Slot sedang diproses oleh penghuni lain. Silakan coba lagi.']);
+            throw ValidationException::withMessages(['slot' => 'Slot sedang diproses oleh penghuni lain.']);
         }
 
         try {
             return DB::transaction(function () use ($request, $startTime, $endTime) {
 
-                // [REVISI] 1. AMBIL UNIT DARI SESSION (BUKAN INPUT MANUAL)
+                // 3. CARI UNIT DARI SESSION (Siapa yang login?)
+                // Kita tidak mengambil dari input, tapi dari session login biar aman
                 $unitId = session('resident_unit_id');
                 $unit = Unit::find($unitId);
 
-                // Validasi Session (Jaga-jaga kalau expired pas lagi klik)
+                // Cek apakah session valid
                 if (! $unit) {
                     throw ValidationException::withMessages(['player_names' => 'Sesi Anda habis. Silakan login ulang.']);
                 }
 
-                // --- VALIDASI 1: SANKSI (BANNED) ---
+                // 4. VALIDASI: APAKAH UNIT KENA BANNED?
                 if ($unit->is_banned_until && now() < $unit->is_banned_until) {
-                    $dateEnd = Carbon::parse($unit->is_banned_until)->format('d M Y');
                     throw ValidationException::withMessages([
-                        'player_names' => "Unit Anda sedang disanksi (Banned) hingga {$dateEnd}. Tidak dapat melakukan booking.",
+                        'player_names' => 'Unit Anda sedang disanksi (Banned).',
                     ]);
                 }
 
-                // --- VALIDASI 2: KUOTA MINGGUAN ---
+                // 5. VALIDASI: KUOTA MINGGUAN (Max 2 Jam)
                 $startOfWeek = now()->startOfWeek();
                 $endOfWeek = now()->endOfWeek();
-
                 $weeklyUsage = Booking::active()
                     ->where('unit_id', $unit->id)
                     ->whereBetween('start_time', [$startOfWeek, $endOfWeek])
@@ -118,11 +146,12 @@ class BookingController extends Controller
 
                 if ($weeklyUsage >= 2) {
                     throw ValidationException::withMessages([
-                        'player_names' => 'Kuota mingguan Anda habis. Maksimal 2 jam per minggu.',
+                        'player_names' => 'Kuota mingguan habis (Maks 2 jam/minggu).',
                     ]);
                 }
 
-                // 2. Cek Ketersediaan Slot (Double Check Database)
+                // 6. VALIDASI: CEK APAKAH SLOT MASIH KOSONG?
+                // Penting! Cek database sekali lagi sebelum simpan
                 $isBooked = Booking::active()
                     ->where('start_time', $startTime->format('Y-m-d H:i:s'))
                     ->exists();
@@ -131,25 +160,21 @@ class BookingController extends Controller
                     throw ValidationException::withMessages(['slot' => 'Maaf, slot ini baru saja diambil orang lain.']);
                 }
 
-                // 3. Simpan Booking
+                // 7. SIMPAN BOOKING (INI BAGIAN YG KAMU TANYAKAN)
+                // Disini kita TIDAK LAGI mengecek Access Code / PIN
                 $booking = Booking::create([
-                    'unit_id' => $unit->id, // [REVISI] Pakai ID Session
+                    'unit_id' => $unit->id,
                     'start_time' => $startTime,
                     'end_time' => $endTime,
-                    'player_names' => [$request->player_names],
+                    'player_names' => [$request->player_names], // Array nama pemain
                     'status' => 'booked',
+                    'booking_code' => 'TN-'.strtoupper(uniqid()), // Generate Kode Tiket
                 ]);
 
-                // Generate Booking Code jika Observer macet
-                if (! $booking->booking_code) {
-                    $booking->booking_code = 'TN-'.strtoupper(uniqid());
-                    $booking->save();
-                }
-
-                // Update Counter Unit
+                // 8. UPDATE STATISTIK UNIT
                 $unit->increment('quota_usage');
 
-                // 4. Redirect ke Halaman Sukses
+                // 9. REDIRECT KE TIKET
                 return to_route('booking.ticket', $booking->booking_code);
             });
 

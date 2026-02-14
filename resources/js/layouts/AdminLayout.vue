@@ -53,7 +53,7 @@ const menus = [
                     <h1
                         class="text-2xl font-black tracking-tight text-[#1A5F7A]"
                     >
-                        Palace Court
+                        Mediterania Court
                     </h1>
                     <p
                         class="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase"

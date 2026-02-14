@@ -10,7 +10,7 @@ const props = defineProps({
 const showQrModal = ref(false);
 
 const formattedDate = computed(() => {
-    return new Date(props.booking.start_time).toLocaleDateString('id-ID', {
+    return new Date(props.booking.start_time).toLocaleDateString('en-GB', {
         weekday: 'long',
         day: 'numeric',
         month: 'short',
@@ -22,35 +22,32 @@ const formattedTime = computed(() => {
     const s = new Date(props.booking.start_time);
     const e = new Date(props.booking.end_time);
     const opt = { hour: '2-digit', minute: '2-digit', hour12: false };
-    return `${s.toLocaleTimeString('id-ID', opt)} - ${e.toLocaleTimeString('id-ID', opt)}`;
+    return `${s.toLocaleTimeString('en-GB', opt)} - ${e.toLocaleTimeString('en-GB', opt)}`;
 });
 </script>
 
 <template>
-    <Head title="Booking Berhasil" />
+    <Head title="Booking Successful" />
 
-    <!-- LAYOUT UTAMA -->
+    <!-- WRAPPER UTAMA: h-[100dvh] agar pas layar & overflow-hidden -->
     <div
-        class="flex min-h-[100dvh] justify-center bg-[#E7E5D7] font-sans text-[#4F5D46] antialiased"
+        class="flex h-[100dvh] justify-center overflow-hidden bg-[#EAEFF5] font-sans text-[#1A5F7A] antialiased"
     >
-        <!-- MOBILE CONTAINER -->
         <div
-            class="relative flex min-h-[100dvh] w-full max-w-[480px] flex-col items-center justify-between border-x border-white/50 bg-white/60 p-6 shadow-2xl backdrop-blur-xl"
+            class="relative flex h-full w-full max-w-[480px] flex-col bg-[#F8FAFC] p-6 shadow-2xl"
         >
-            <!-- ===== BAGIAN ATAS ===== -->
-            <div class="flex w-full flex-col items-center">
-                <!-- Success Icon -->
-                <div
-                    class="relative mb-6 flex h-24 w-24 items-center justify-center"
-                >
+            <!-- 1. HEADER SECTION (Compact) -->
+            <div class="mb-4 flex flex-none flex-col items-center pt-4">
+                <!-- Icon -->
+                <div class="relative mb-3">
                     <div
-                        class="absolute h-full w-full animate-ping rounded-full bg-[#65AAC2]/30"
+                        class="absolute inset-0 animate-pulse rounded-full bg-[#BEF264] opacity-40 blur-xl"
                     ></div>
                     <div
-                        class="relative flex h-20 w-20 items-center justify-center rounded-full bg-[#65AAC2] text-white shadow-lg shadow-[#65AAC2]/40"
+                        class="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-md shadow-[#1A5F7A]/10"
                     >
                         <svg
-                            class="h-10 w-10"
+                            class="h-8 w-8 text-[#1A5F7A]"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -60,220 +57,307 @@ const formattedTime = computed(() => {
                                 stroke-linejoin="round"
                                 stroke-width="3"
                                 d="M5 13l4 4L19 7"
-                            />
+                            ></path>
                         </svg>
                     </div>
                 </div>
 
-                <h1 class="mb-2 text-2xl font-black text-[#4F5D46]">
-                    Booking Berhasil!
-                </h1>
-                <p class="mb-8 text-center text-sm font-medium text-[#869A69]">
-                    Jadwal lapangan tenis telah diamankan.<br />
-                    Silakan simpan tiket Anda.
-                </p>
-
-                <!-- Ticket Card -->
-                <div
-                    class="w-full overflow-hidden rounded-[2rem] border border-[#869A69]/30 bg-white/80 shadow-xl backdrop-blur-md"
+                <h1
+                    class="mb-1 text-2xl leading-none font-black tracking-tight text-[#1A5F7A]"
                 >
-                    <!-- Header -->
-                    <div
-                        class="flex items-center justify-between border-b border-[#869A69]/20 p-6"
-                    >
-                        <div>
-                            <div
-                                class="text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
-                            >
-                                Kode Booking
+                    Booking Confirmed!
+                </h1>
+                <p class="text-center text-xs font-medium text-slate-400">
+                    Please save your ticket below.
+                </p>
+            </div>
+
+            <!-- 2. TICKET CARD (Flex Grow / Auto Center) -->
+            <div
+                class="flex min-h-0 w-full flex-1 flex-col justify-center py-2"
+            >
+                <div
+                    class="relative w-full rounded-[2rem] shadow-xl shadow-slate-200/60"
+                >
+                    <!-- Top Part -->
+                    <div class="relative z-10 rounded-t-[2rem] bg-white p-5">
+                        <!-- Header Ticket -->
+                        <div class="mb-4 flex items-start justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div
+                                    class="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAEFF5] text-[#1A5F7A]"
+                                >
+                                    <svg
+                                        class="h-4 w-4"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                                            clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3
+                                        class="text-xs leading-tight font-black tracking-wide text-[#1A5F7A] uppercase"
+                                    >
+                                        Tennis Court
+                                    </h3>
+                                    <span
+                                        class="rounded-md bg-[#BEF264] px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-[#1A5F7A] uppercase"
+                                        >Confirmed</span
+                                    >
+                                </div>
                             </div>
-                            <div
-                                class="mt-1 font-mono text-2xl font-black tracking-tight text-[#65AAC2]"
+                            <!-- Mini QR -->
+                            <button
+                                @click="showQrModal = true"
+                                class="rounded-xl bg-[#F1F5F9] p-1.5 transition-all hover:bg-[#E2E8F0] active:scale-95"
                             >
-                                {{
-                                    booking.booking_code
-                                        .substring(0, 8)
-                                        .toUpperCase()
-                                }}
-                            </div>
+                                <img
+                                    :src="qrCode"
+                                    class="h-6 w-6 mix-blend-multiply"
+                                />
+                            </button>
                         </div>
 
-                        <button
-                            @click="showQrModal = true"
-                            class="rounded-xl border border-[#869A69]/30 bg-white p-1.5 shadow-sm transition hover:scale-105 active:scale-95"
-                        >
-                            <img :src="qrCode" class="h-12 w-12" alt="QR" />
-                        </button>
-                    </div>
-
-                    <!-- Detail -->
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-6 p-6 pb-8">
-                        <!-- Tanggal -->
-                        <div class="col-span-2">
-                            <div class="mb-1 flex items-center gap-2">
-                                <svg
-                                    class="h-4 w-4 text-[#65AAC2]"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                    />
-                                </svg>
-                                <span
-                                    class="text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
-                                >
-                                    Tanggal Main
-                                </span>
-                            </div>
-                            <div
-                                class="pl-6 text-base font-bold text-[#4F5D46]"
+                        <!-- Date & Time (Compact) -->
+                        <div class="mb-5 text-center">
+                            <h2
+                                class="text-xl leading-tight font-black text-[#1A5F7A]"
                             >
                                 {{ formattedDate }}
-                            </div>
-                        </div>
-
-                        <!-- Jam -->
-                        <div>
-                            <div class="mb-1 flex items-center gap-2">
-                                <svg
-                                    class="h-4 w-4 text-[#65AAC2]"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                                <span
-                                    class="text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
-                                >
-                                    Jam
-                                </span>
-                            </div>
-                            <div class="pl-6 text-sm font-bold text-[#4F5D46]">
+                            </h2>
+                            <p class="mt-1 text-sm font-bold text-slate-400">
                                 {{ formattedTime }}
-                            </div>
+                            </p>
                         </div>
 
-                        <!-- Unit -->
-                        <div>
-                            <div class="mb-1 flex items-center gap-2">
-                                <svg
-                                    class="h-4 w-4 text-[#65AAC2]"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                        <!-- Details Grid -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div
+                                class="rounded-2xl border border-slate-100 bg-[#F8FAFC] p-2.5"
+                            >
+                                <p
+                                    class="mb-0.5 text-[9px] font-bold tracking-wider text-slate-400 uppercase"
                                 >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m8-2a2 2 0 11-4 0 2 2 0 014 0z"
-                                    />
-                                </svg>
-                                <span
-                                    class="text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
+                                    UNIT
+                                </p>
+                                <p
+                                    class="truncate text-sm font-black text-[#1A5F7A]"
                                 >
-                                    Unit
-                                </span>
-                            </div>
-                            <div class="pl-6 text-sm font-bold text-[#4F5D46]">
-                                {{ booking.unit?.unit_number }}
-                            </div>
-                        </div>
-
-                        <!-- Pemain -->
-                        <div
-                            class="col-span-2 mt-2 border-t border-[#869A69]/20 pt-4"
-                        >
-                            <div class="mb-1 flex items-center gap-2">
-                                <svg
-                                    class="h-4 w-4 text-[#65AAC2]"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                    />
-                                </svg>
-                                <span
-                                    class="text-[10px] font-bold tracking-widest text-[#869A69] uppercase"
-                                >
-                                    Pemain
-                                </span>
+                                    {{ booking.unit?.unit_number }}
+                                </p>
                             </div>
                             <div
-                                class="pl-6 text-sm font-bold break-words text-[#4F5D46]"
+                                class="rounded-2xl border border-slate-100 bg-[#F8FAFC] p-2.5"
+                            >
+                                <p
+                                    class="mb-0.5 text-[9px] font-bold tracking-wider text-slate-400 uppercase"
+                                >
+                                    CODE
+                                </p>
+                                <p
+                                    class="truncate font-mono text-sm font-black tracking-tighter text-[#1A5F7A]"
+                                >
+                                    {{
+                                        booking.booking_code.substring(0, 8)
+                                    }}...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Divider (Tighter) -->
+                    <div
+                        class="relative z-20 -my-[1px] flex h-4 items-center bg-[#EAEFF5]"
+                    >
+                        <div
+                            class="absolute -left-2 h-4 w-4 rounded-full bg-[#F8FAFC]"
+                        ></div>
+                        <div
+                            class="absolute -right-2 h-4 w-4 rounded-full bg-[#F8FAFC]"
+                        ></div>
+                        <div class="relative mx-2 h-full w-full bg-white">
+                            <div
+                                class="absolute top-1/2 w-full -translate-y-1/2 border-t-2 border-dashed border-slate-200"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Part -->
+                    <div
+                        class="relative z-10 rounded-b-[2rem] bg-white p-5 pt-3"
+                    >
+                        <p
+                            class="mb-2 text-[9px] font-bold tracking-wider text-slate-400 uppercase"
+                        >
+                            PLAYERS
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1A5F7A] text-[10px] font-bold text-white"
+                            >
+                                {{
+                                    (Array.isArray(booking.player_names)
+                                        ? booking.player_names[0]
+                                        : booking.player_names
+                                    ).charAt(0)
+                                }}
+                            </div>
+                            <p
+                                class="truncate text-sm font-bold text-[#1A5F7A]"
                             >
                                 {{
                                     Array.isArray(booking.player_names)
                                         ? booking.player_names[0]
                                         : booking.player_names
                                 }}
-                            </div>
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== BAGIAN BAWAH (SELALU TERLIHAT) ===== -->
-            <div class="w-full">
+            <!-- 3. FOOTER ACTIONS (Pinned Bottom) -->
+            <div class="pb-safe mt-2 w-full flex-none space-y-3">
                 <a
                     :href="`/ticket/${booking.booking_code}/pdf`"
                     target="_blank"
-                    class="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#65AAC2] py-4 font-bold text-white shadow-xl shadow-[#65AAC2]/30 transition hover:opacity-90 active:scale-95"
+                    class="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1A5F7A] py-3.5 font-bold text-white shadow-xl shadow-[#1A5F7A]/20 transition-all hover:bg-[#164e63] active:scale-[0.98]"
                 >
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        ></path>
+                    </svg>
                     Download E-Ticket
                 </a>
 
                 <Link
-                    href="/"
-                    class="mt-4 block text-center text-sm font-bold text-[#869A69] transition hover:text-[#4F5D46]"
+                    href="/booking"
+                    class="block w-full rounded-2xl border border-slate-200 py-3.5 text-center text-sm font-bold text-slate-400 transition-colors hover:border-[#1A5F7A] hover:text-[#1A5F7A]"
                 >
-                    Booking Slot Lain
+                    Back to Home
                 </Link>
             </div>
         </div>
 
-        <!-- MODAL QR -->
-        <div
-            v-if="showQrModal"
-            class="fixed inset-0 z-[60] flex items-center justify-center bg-[#4F5D46]/60 p-6 backdrop-blur-sm"
-            @click="showQrModal = false"
-        >
+        <!-- MODAL QR (Tetap Sama) -->
+        <transition name="modal">
             <div
-                class="w-full max-w-xs rounded-[2rem] bg-white p-8 text-center shadow-2xl"
-                @click.stop
+                v-if="showQrModal"
+                class="fixed inset-0 z-[60] flex items-center justify-center p-6"
             >
                 <div
-                    class="mb-6 inline-block rounded-2xl border border-[#869A69]/30 p-4"
-                >
-                    <img :src="qrCode" class="h-56 w-56 mix-blend-multiply" />
-                </div>
-                <h3 class="mb-2 text-lg font-bold text-[#4F5D46]">Scan Me</h3>
-                <p class="text-sm font-medium text-[#869A69]">
-                    Tunjukkan QR Code ini kepada petugas.
-                </p>
-                <button
                     @click="showQrModal = false"
-                    class="mt-6 w-full rounded-xl bg-[#65AAC2] py-3 text-sm font-bold text-white transition hover:opacity-90"
+                    class="absolute inset-0 bg-[#1A5F7A]/80 backdrop-blur-sm"
+                ></div>
+                <div
+                    class="animate-scale-up relative w-full max-w-[320px] rounded-[2rem] bg-white p-8 text-center shadow-2xl"
                 >
-                    Tutup
-                </button>
+                    <div
+                        class="mx-auto mb-6 h-1 w-12 rounded-full bg-slate-200"
+                    ></div>
+                    <h3 class="mb-1 text-xl font-black text-[#1A5F7A]">
+                        Scan Entry Code
+                    </h3>
+                    <p class="mb-6 text-xs text-slate-400">
+                        Show this to the gate keeper
+                    </p>
+
+                    <div
+                        class="relative mb-6 inline-block overflow-hidden rounded-[1.5rem] border-2 border-[#1A5F7A]/10 bg-white p-4 shadow-inner"
+                    >
+                        <div
+                            class="animate-scan absolute top-0 left-0 h-1 w-full bg-[#BEF264]/80 shadow-[0_0_15px_rgba(190,242,100,0.8)]"
+                        ></div>
+                        <img
+                            :src="qrCode"
+                            class="h-48 w-48 mix-blend-multiply"
+                        />
+                    </div>
+
+                    <div
+                        class="mb-6 rounded-xl border border-slate-200 bg-[#F1F5F9] py-3"
+                    >
+                        <p
+                            class="mb-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase"
+                        >
+                            BOOKING CODE
+                        </p>
+                        <p
+                            class="font-mono text-xl font-black tracking-widest text-[#1A5F7A]"
+                        >
+                            {{ booking.booking_code }}
+                        </p>
+                    </div>
+
+                    <button
+                        @click="showQrModal = false"
+                        class="w-full rounded-xl bg-[#1A5F7A] py-4 font-bold text-white shadow-lg shadow-[#1A5F7A]/20 transition-colors hover:bg-[#164e63]"
+                    >
+                        Close
+                    </button>
+                </div>
             </div>
-        </div>
+        </transition>
     </div>
 </template>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+    transition: opacity 0.3s;
+}
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
+}
+@keyframes scale-up {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+.animate-scale-up {
+    animation: scale-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes scan {
+    0% {
+        top: 0;
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
+}
+.animate-scan {
+    animation: scan 2.5s linear infinite;
+}
+/* Untuk iPhone Notch */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+</style>

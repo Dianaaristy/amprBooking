@@ -2,238 +2,264 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>E-Ticket AMPR</title>
+    <title>E-Ticket Mediterania Court</title>
     <style>
-        /* 1. SETUP KERTAS & BACKGROUND */
         @page {
-            margin: 0px;
+            margin: 0;
+            size: A5 portrait; /* Ukuran kertas pas HP */
         }
 
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
             margin: 0;
-            padding: 30px 20px;
-            background-color: #E7E5D7; /* Cement Beige - Background Luar */
-            color: #333333;
+            padding: 15px; /* Margin luar tipis saja */
+            background-color: #EAEFF5;
+            color: #1A5F7A;
         }
 
-        .container {
+        .wrapper {
             width: 100%;
+            max-width: 100%;
         }
 
-        /* 2. CARD UTAMA */
+        /* CARD STYLE */
         .ticket-card {
             background-color: #ffffff;
-            width: 100%;
-            border-radius: 12px;
+            border-radius: 15px;
             overflow: hidden;
-            page-break-inside: avoid;
-            /* Border tipis Court Green agar terdefinisi */
-            border: 1px solid #869A69; 
+            /* Mencegah kartu terpotong ke halaman 2 */
+            page-break-inside: avoid; 
         }
 
-        /* 3. HEADER (Dominan Blue + Aksen Green) */
+        /* HEADER (Lebih Compact) */
         .header {
-            background-color: #65AAC2; /* Court Blue */
-            color: #ffffff;
-            padding: 25px 20px;
-            text-align: center;
-            /* Garis bawah Tennis Ball Green sebagai pemanis */
-            border-bottom: 6px solid #ADBA5E; 
+            background-color: #1A5F7A;
+            padding: 20px 20px; /* Padding dikurangi */
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .header h1 {
-            margin: 0;
-            font-size: 22px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            font-weight: 900;
-        }
-
-        .header p {
-            margin: 4px 0 0;
-            font-size: 10px;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: normal;
-        }
-
-        /* CONTENT AREA */
-        .content {
-            padding: 25px 30px;
-        }
-
-        /* Kode Booking */
-        .booking-code-label {
-            text-align: center;
+        .brand-small {
             font-size: 9px;
             font-weight: bold;
-            color: #869A69; /* Court Green */
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-
-        .booking-code {
-            text-align: center;
-            font-size: 30px;
-            font-weight: bold;
-            color: #65AAC2; /* Court Blue - Menyamakan dengan Header */
-            margin: 0 0 20px 0;
-            font-family: 'Courier New', Courier, monospace;
+            color: #BEF264;
             letter-spacing: 2px;
-        }
-
-        /* QR Code Wrapper */
-        .qr-container {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .qr-box {
-            display: inline-block;
-            padding: 10px;
-            background-color: #F9F9F9;
-            border: 1px dashed #E7E5D7; /* Border Beige halus */
-            border-radius: 8px;
-        }
-
-        .qr-img {
-            width: 130px;
-            height: 130px;
-            display: block;
-        }
-
-        /* TABEL DETAIL */
-        .details-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .details-table td {
-            padding: 10px 0;
-            vertical-align: top;
-            /* Garis pemisah halus warna Beige */
-            border-bottom: 1px solid #E7E5D7; 
-        }
-
-        .details-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Label menggunakan Court Green */
-        .label {
-            font-size: 9px;
-            color: #869A69; 
             text-transform: uppercase;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            display: block;
             margin-bottom: 3px;
         }
 
-        /* Value Utama */
-        .value {
-            font-size: 13px;
+        .brand-title {
+            font-size: 20px; /* Font size disesuaikan */
+            font-weight: 900;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .unit-badge {
+            background-color: rgba(255, 255, 255, 0.15);
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .unit-label { font-size: 7px; text-transform: uppercase; color: #BEF264; display: block; }
+        .unit-number { font-size: 12px; font-weight: bold; color: #ffffff; display: block; }
+
+        /* BODY CONTENT (Lebih Rapat) */
+        .content {
+            padding: 15px 20px; /* Padding dikurangi dari 30px */
+        }
+
+        /* QR AREA */
+        .qr-section {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .qr-img {
+            width: 110px; /* Diperkecil agar muat */
+            height: 110px;
+        }
+
+        /* INFO TABLE */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .info-table td {
+            padding-bottom: 8px; /* Jarak antar baris diperkecil */
+            vertical-align: top;
+        }
+
+        .label {
+            font-size: 8px;
+            color: #94A3B8;
+            text-transform: uppercase;
             font-weight: bold;
-            color: #333;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1A5F7A;
+        }
+
+        .value-large {
+            font-size: 18px;
+            font-weight: 900;
+            color: #1A5F7A;
+        }
+
+        /* BOOKING CODE BOX */
+        .code-box {
+            background-color: #F8FAFC;
+            border: 2px dashed #CBD5E1;
+            padding: 10px; /* Padding dikurangi */
+            border-radius: 10px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .code-text {
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1A5F7A;
+            letter-spacing: 2px;
+        }
+
+        /* SEPARATOR */
+        .separator {
+            border-top: 1px dashed #E2E8F0;
+            margin: 10px 0;
+        }
+
+        /* FOOTER */
+        .footer {
+            background-color: #F1F5F9;
+            padding: 15px;
+            text-align: center;
+            border-top: 1px solid #E2E8F0;
+        }
+
+        .footer-text {
+            font-size: 9px;
+            color: #64748B;
             line-height: 1.4;
         }
 
-        /* FOOTER (Background Beige agar menyatu dengan body) */
-        .footer {
-            background-color: #F4F4F0; /* Versi sangat muda dari Beige */
-            text-align: center;
-            padding: 15px;
+        .status-badge {
+            background-color: #1A5F7A;
+            color: #BEF264;
             font-size: 9px;
-            color: #869A69; /* Teks Hijau */
-            border-top: 1px solid #E7E5D7;
-        }
-        
-        .footer-note {
-            font-style: italic;
-            opacity: 0.8;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="ticket-card">
+    <div class="wrapper">
+        <div class="ticket-card">
+            
+            <!-- HEADER -->
+            <div class="header">
+                <table width="100%">
+                    <tr>
+                        <td align="left">
+                            <div class="brand-small">Mediterania Court</div>
+                            <h1 class="brand-title">E-TICKET</h1>
+                        </td>
+                        <td align="right" width="80">
+                            <div class="unit-badge">
+                                <span class="unit-label">UNIT</span>
+                                <span class="unit-number">{{ $booking->unit->unit_number }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
-        <!-- Header: Blue with Green Accent line -->
-        <div class="header">
-            <h1>E-TICKET LAPANGAN</h1>
-            <p>Apartemen Mediterania Palace</p>
-        </div>
-
-        <div class="content">
-            <!-- Kode Booking -->
-            <div class="booking-code-label">KODE BOOKING</div>
-            <div class="booking-code">{{ strtoupper($booking->booking_code) }}</div>
-
-            <!-- QR Code -->
-            <div class="qr-container">
-                <div class="qr-box">
+            <!-- BODY -->
+            <div class="content">
+                
+                <!-- QR CODE -->
+                <div class="qr-section">
                     <img src="{{ $qrCode }}" class="qr-img" />
+                    <div style="margin-top:4px; font-size:9px; color:#94A3B8;">Scan for entry</div>
+                </div>
+
+                <!-- INFO GRID -->
+                <table class="info-table">
+                    <tr>
+                        <td width="55%">
+                            <span class="label">Date</span>
+                            <span class="value">
+                                {{ \Carbon\Carbon::parse($booking->start_time)->locale('en')->isoFormat('ddd, D MMM Y') }}
+                            </span>
+                        </td>
+                        <td width="45%" align="right">
+                            <span class="label">Time</span>
+                            <span class="value">
+                                {{ \Carbon\Carbon::parse($booking->start_time)->format('H:i') }} - 
+                                {{ \Carbon\Carbon::parse($booking->end_time)->format('H:i') }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="label">Status</span>
+                            <span class="status-badge">CONFIRMED</span>
+                        </td>
+                        <td align="right">
+                            <span class="label">Facility</span>
+                            <span class="value">Tennis Court</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- BOOKING CODE -->
+                <div class="code-box">
+                    <span class="label" style="display:block; margin-bottom:2px;">BOOKING CODE</span>
+                    <span class="code-text">{{ strtoupper($booking->booking_code) }}</span>
+                </div>
+
+                <!-- SEPARATOR -->
+                <div class="separator"></div>
+
+                <!-- PLAYER INFO -->
+                <table class="info-table" style="margin-bottom:0;">
+                    <tr>
+                        <td>
+                            <span class="label">Registered Player</span>
+                            <!-- word-wrap penting agar nama panjang turun ke bawah, bukan memanjang ke samping -->
+                            <span class="value-large" style="word-wrap: break-word;">
+                                {{ is_array($booking->player_names) ? $booking->player_names[0] : $booking->player_names }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="footer">
+                <div class="footer-text">
+                    <b>TERMS & CONDITIONS</b><br>
+                    Please show this ticket to the security.<br>
+                    Arrive 10 minutes early.
                 </div>
             </div>
 
-            <!-- Detail Info -->
-            <table class="details-table">
-                <tr>
-                    <td width="60%">
-                        <span class="label">Tanggal Main</span>
-                        <span class="value">
-                            {{ \Carbon\Carbon::parse($booking->start_time)->locale('id')->isoFormat('dddd, D MMMM Y') }}
-                        </span>
-                    </td>
-                    <td width="40%" style="text-align:right;">
-                        <span class="label">Unit Apartemen</span>
-                        <!-- Unit menggunakan Court Blue agar menonjol -->
-                        <span class="value" style="font-size:15px; color:#65AAC2;">
-                            {{ $booking->unit->unit_number }}
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <span class="label">Jam</span>
-                        <span class="value">
-                            {{ \Carbon\Carbon::parse($booking->start_time)->format('H:i') }} -
-                            {{ \Carbon\Carbon::parse($booking->end_time)->format('H:i') }}
-                        </span>
-                    </td>
-                    <td style="text-align:right;">
-                        <span class="label">Status</span>
-                        <!-- Status menggunakan Tennis Ball Green (Available/Success Color) -->
-                        <span class="value" style="color:#ADBA5E; letter-spacing: 1px;">CONFIRMED</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <span class="label">Nama Pemain</span>
-                        <span class="value" style="word-wrap:break-word;">
-                            {{ is_array($booking->player_names) ? $booking->player_names[0] : $booking->player_names }}
-                        </span>
-                    </td>
-                </tr>
-            </table>
         </div>
-
-        <!-- Footer: Light Theme -->
-        <div class="footer">
-            <div style="font-weight: bold; margin-bottom: 2px;">SCAN UNTUK CHECK-IN</div>
-            <div class="footer-note">
-                Harap tunjukkan tiket ini kepada petugas keamanan di lobby.<br>
-                Datang 10 menit sebelum jadwal main.
-            </div>
-        </div>
-
     </div>
-</div>
 
 </body>
 </html>
