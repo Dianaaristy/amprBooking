@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -31,8 +30,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     description="Ensure your account is using a long, random password to stay secure"
                 />
 
+                <!-- FIXED FORM -->
                 <Form
-                    v-bind="PasswordController.update.form()"
+                    method="put"
+                    :action="edit().url"
                     :options="{
                         preserveScroll: true,
                     }"
@@ -45,6 +46,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     class="space-y-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
+                    <!-- CURRENT PASSWORD -->
                     <div class="grid gap-2">
                         <Label for="current_password">Current password</Label>
                         <Input
@@ -58,6 +60,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <InputError :message="errors.current_password" />
                     </div>
 
+                    <!-- NEW PASSWORD -->
                     <div class="grid gap-2">
                         <Label for="password">New password</Label>
                         <Input
@@ -71,10 +74,11 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <InputError :message="errors.password" />
                     </div>
 
+                    <!-- CONFIRM PASSWORD -->
                     <div class="grid gap-2">
-                        <Label for="password_confirmation"
-                            >Confirm password</Label
-                        >
+                        <Label for="password_confirmation">
+                            Confirm password
+                        </Label>
                         <Input
                             id="password_confirmation"
                             name="password_confirmation"
@@ -86,12 +90,9 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <InputError :message="errors.password_confirmation" />
                     </div>
 
+                    <!-- BUTTON -->
                     <div class="flex items-center gap-4">
-                        <Button
-                            :disabled="processing"
-                            data-test="update-password-button"
-                            >Save password</Button
-                        >
+                        <Button :disabled="processing"> Save password </Button>
 
                         <Transition
                             enter-active-class="transition ease-in-out"

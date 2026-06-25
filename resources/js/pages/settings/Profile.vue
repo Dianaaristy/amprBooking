@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
@@ -43,17 +42,20 @@ const user = page.props.auth.user;
                     description="Update your name and email address"
                 />
 
+                <!-- FORM INERTIA (FIXED) -->
                 <Form
-                    v-bind="ProfileController.update.form()"
+                    method="put"
+                    :action="edit().url"
                     class="space-y-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
+                    <!-- NAME -->
                     <div class="grid gap-2">
                         <Label for="name">Name</Label>
                         <Input
                             id="name"
-                            class="mt-1 block w-full"
                             name="name"
+                            class="mt-1 block w-full"
                             :default-value="user.name"
                             required
                             autocomplete="name"
@@ -62,13 +64,14 @@ const user = page.props.auth.user;
                         <InputError class="mt-2" :message="errors.name" />
                     </div>
 
+                    <!-- EMAIL -->
                     <div class="grid gap-2">
                         <Label for="email">Email address</Label>
                         <Input
                             id="email"
                             type="email"
-                            class="mt-1 block w-full"
                             name="email"
+                            class="mt-1 block w-full"
                             :default-value="user.email"
                             required
                             autocomplete="username"
@@ -77,8 +80,9 @@ const user = page.props.auth.user;
                         <InputError class="mt-2" :message="errors.email" />
                     </div>
 
+                    <!-- EMAIL VERIFICATION -->
                     <div v-if="mustVerifyEmail && !user.email_verified_at">
-                        <p class="-mt-4 text-sm text-muted-foreground">
+                        <p class="text-muted-foreground -mt-4 text-sm">
                             Your email address is unverified.
                             <Link
                                 :href="send()"
@@ -98,12 +102,9 @@ const user = page.props.auth.user;
                         </div>
                     </div>
 
+                    <!-- BUTTON -->
                     <div class="flex items-center gap-4">
-                        <Button
-                            :disabled="processing"
-                            data-test="update-profile-button"
-                            >Save</Button
-                        >
+                        <Button :disabled="processing"> Save </Button>
 
                         <Transition
                             enter-active-class="transition ease-in-out"
